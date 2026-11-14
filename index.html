@@ -397,7 +397,6 @@
     const resultToneTag = document.getElementById('resultToneTag');
     const regenerateBtn = document.getElementById('regenerateBtn');
 
-    // API Key Management
     const apiModal = document.getElementById('apiModal');
     const apiKeyInput = document.getElementById('apiKeyInput');
     const apiAlertBanner = document.getElementById('apiAlertBanner');
@@ -450,7 +449,6 @@
 
     updateApiKeyUI();
 
-    // Tone Selection
     document.querySelectorAll('.tone-card').forEach(card => {
       card.addEventListener('click', () => {
         document.querySelectorAll('.tone-card').forEach(c => {
@@ -468,7 +466,6 @@
       });
     });
 
-    // Length Selection
     document.querySelectorAll('.length-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         document.querySelectorAll('.length-btn').forEach(b => {
@@ -481,7 +478,6 @@
       });
     });
 
-    // Emoji Toggle
     const emojiToggle = document.getElementById('emojiToggle');
     emojiToggle.addEventListener('click', () => {
       includeEmoji = !includeEmoji;
@@ -494,11 +490,9 @@
       document.getElementById('emojiIcon').textContent = includeEmoji ? '😊' : '🚫';
     });
 
-    // Clear Buttons
     document.getElementById('clearContext').addEventListener('click', () => { contextInput.value = ''; contextInput.focus(); });
     document.getElementById('clearComment').addEventListener('click', () => { commentInput.value = ''; commentInput.focus(); });
 
-    // Presets
     const presetBtn = document.getElementById('presetBtn');
     const presetMenu = document.getElementById('presetMenu');
     presetBtn.addEventListener('click', (e) => { e.stopPropagation(); presetMenu.classList.toggle('hidden'); });
@@ -514,7 +508,6 @@
       });
     });
 
-    // Toast
     let toastTimer;
     function showToast(msg) {
       const toast = document.getElementById('toast');
@@ -538,7 +531,6 @@
       }
     }
 
-    // Call Gemini API
     async function generateReplies() {
       if (!apiKey) {
         openApiModal();
@@ -586,11 +578,7 @@ Buatlah 3 variasi opsi balasan dengan pendekatan sedikit berbeda namun tetap dal
         contents: [{ parts: [{ text: userQuery }] }],
         systemInstruction: { parts: [{ text: systemPrompt }] },
         generationConfig: {
-
           thinkingConfig: { thinkingBudget: 0 },
-          responseMimeType: "application/json",
-          responseSchema: {
-
           responseMimeType: "application/json",
           responseSchema: {
             type: "OBJECT",
@@ -612,7 +600,7 @@ Buatlah 3 variasi opsi balasan dengan pendekatan sedikit berbeda namun tetap dal
         }
       };
 
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${encodeURIComponent(apiKey)}`;
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash-preview:generateContent?key=${encodeURIComponent(apiKey)}`;
 
       try {
         const res = await fetch(url, {
