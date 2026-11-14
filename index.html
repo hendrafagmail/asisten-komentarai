@@ -586,6 +586,11 @@ Buatlah 3 variasi opsi balasan dengan pendekatan sedikit berbeda namun tetap dal
         contents: [{ parts: [{ text: userQuery }] }],
         systemInstruction: { parts: [{ text: systemPrompt }] },
         generationConfig: {
+
+          thinkingConfig: { thinkingBudget: 0 },
+          responseMimeType: "application/json",
+          responseSchema: {
+
           responseMimeType: "application/json",
           responseSchema: {
             type: "OBJECT",
