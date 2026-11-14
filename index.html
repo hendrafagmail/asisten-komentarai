@@ -1,0 +1,842 @@
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asisten Penjawab Komentar AI</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            200: '#c7d2fe',
+                            300: '#a5b4fc',
+                            400: '#818cf8',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            800: '#3730a3',
+                            900: '#312e81',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Kustomisasi scrollbar halus */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f8fafc; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+        .fade-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col antialiased selection:bg-brand-100 selection:text-brand-800">
+
+    <!-- Notifikasi Toast (Pengganti alert) -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- Header / Navbar -->
+    <header class="bg-white/80 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500 to-purple-600 flex items-center justify-center text-white shadow-md shadow-brand-500/20">
+                    <i data-lucide="message-square-sparkles" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg sm:text-xl text-slate-900 tracking-tight leading-none">BalasCepat <span class="text-brand-600">AI</span></h1>
+                    <p class="text-xs text-slate-500 mt-0.5 hidden sm:block">Asisten Cerdas Penjawab Komentar Media Sosial</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2 sm:gap-3">
+                <!-- Dropdown Contoh Preset -->
+                <div class="relative inline-block text-left" id="preset-dropdown-wrapper">
+                    <button type="button" onclick="togglePresetMenu()" class="inline-flex items-center gap-2 px-3.5 py-2 text-xs sm:text-sm font-medium text-brand-700 bg-brand-50 hover:bg-brand-100 border border-brand-200/80 rounded-xl transition-all active:scale-95">
+                        <i data-lucide="wand-2" class="w-4 h-4"></i>
+                        <span>Coba Contoh</span>
+                        <i data-lucide="chevron-down" class="w-3.5 h-3.5 opacity-70"></i>
+                    </button>
+                    
+                    <!-- Menu Preset -->
+                    <div id="preset-menu" class="hidden origin-top-right absolute right-0 mt-2 w-72 rounded-2xl shadow-xl bg-white ring-1 ring-slate-900/5 divide-y divide-slate-100 focus:outline-none z-40 overflow-hidden">
+                        <div class="px-4 py-2.5 bg-slate-50/80">
+                            <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Pilih Skenario Contoh</p>
+                        </div>
+                        <div class="p-1.5 space-y-1">
+                            <button onclick="applyPreset('kopi')" class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-brand-50 transition-colors group">
+                                <p class="text-sm font-medium text-slate-800 group-hover:text-brand-700">☕ Kedai Kopi & Promo</p>
+                                <p class="text-xs text-slate-500 truncate">Tanya lokasi cabang & harga promo</p>
+                            </button>
+                            <button onclick="applyPreset('edukasi')" class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-brand-50 transition-colors group">
+                                <p class="text-sm font-medium text-slate-800 group-hover:text-brand-700">💡 Konten Edukasi / Tips</p>
+                                <p class="text-xs text-slate-500 truncate">Audiens bertanya detail teknis tambahan</p>
+                            </button>
+                            <button onclick="applyPreset('komplain')" class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-brand-50 transition-colors group">
+                                <p class="text-sm font-medium text-slate-800 group-hover:text-brand-700">📦 Keluhan Pengiriman</p>
+                                <p class="text-xs text-slate-500 truncate">Pelanggan menanyakan paket belum sampai</p>
+                            </button>
+                            <button onclick="applyPreset('hiburan')" class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-brand-50 transition-colors group">
+                                <p class="text-sm font-medium text-slate-800 group-hover:text-brand-700">😂 Konten Hiburan / Meme</p>
+                                <p class="text-xs text-slate-500 truncate">Komentar bercanda dari followers</p>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tombol Riwayat (Mobile/Tablet toggle) -->
+                <button onclick="toggleHistoryDrawer()" class="lg:hidden relative p-2.5 text-slate-600 hover:text-brand-600 hover:bg-slate-100 rounded-xl transition-colors" title="Riwayat Sesi">
+                    <i data-lucide="history" class="w-5 h-5"></i>
+                    <span id="history-badge-mobile" class="hidden absolute top-1.5 right-1.5 w-2 h-2 bg-brand-600 rounded-full"></span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
+            
+            <!-- Kolom Kiri: Form Konfigurasi & Input (7 kolom di desktop) -->
+            <div class="lg:col-span-7 space-y-6">
+                
+                <!-- Kartu Input Utama -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5 sm:p-6 space-y-5">
+                    
+                    <!-- 1. Input Konteks / Caption -->
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <label for="post-context" class="flex items-center gap-2 text-sm font-semibold text-slate-800">
+                                <span class="w-6 h-6 rounded-lg bg-brand-50 text-brand-600 flex items-center justify-center text-xs font-bold">1</span>
+                                Konteks / Caption Postingan
+                            </label>
+                            <button type="button" onclick="clearField('post-context')" class="text-xs text-slate-400 hover:text-slate-600 transition-colors">Bersihkan</button>
+                        </div>
+                        <p class="text-xs text-slate-500 mb-2.5">Jelaskan isi postingan, produk, promo, atau topik agar AI memahami latar belakangnya.</p>
+                        <textarea id="post-context" rows="3" 
+                            class="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-sm text-slate-800 placeholder-slate-400 focus:bg-white focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 outline-none transition-all resize-y"
+                            placeholder="Contoh: Postingan Instagram tentang promo Beli 1 Gratis 1 Es Kopi Susu Gula Aren khusus pembukaan cabang baru di Bekasi Timur tanggal 15-17 bulan ini..."></textarea>
+                    </div>
+
+                    <!-- 2. Input Komentar Masuk -->
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <label for="incoming-comment" class="flex items-center gap-2 text-sm font-semibold text-slate-800">
+                                <span class="w-6 h-6 rounded-lg bg-brand-50 text-brand-600 flex items-center justify-center text-xs font-bold">2</span>
+                                Komentar yang Ingin Dibalas <span class="text-rose-500">*</span>
+                            </label>
+                            <button type="button" onclick="clearField('incoming-comment')" class="text-xs text-slate-400 hover:text-slate-600 transition-colors">Bersihkan</button>
+                        </div>
+                        <textarea id="incoming-comment" rows="2" 
+                            class="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-sm text-slate-800 placeholder-slate-400 focus:bg-white focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 outline-none transition-all resize-y"
+                            placeholder="Tempel komentar dari audiens di sini. Contoh: Min, kalau pesan lewat ojol berlaku gak promonya?"></textarea>
+                    </div>
+
+                    <!-- 3. Pilihan Gaya Balasan (Tone) -->
+                    <div>
+                        <label class="flex items-center gap-2 text-sm font-semibold text-slate-800 mb-3">
+                            <span class="w-6 h-6 rounded-lg bg-brand-50 text-brand-600 flex items-center justify-center text-xs font-bold">3</span>
+                            Pilih Gaya Balasan (Tone)
+                        </label>
+                        
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5" id="tone-grid">
+                            <!-- Item Tone dirender via JS agar interaktif & bersih -->
+                        </div>
+                    </div>
+
+                    <!-- 4. Opsi Tambahan (Panjang & Emoji) -->
+                    <div class="pt-2 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <!-- Panjang Balasan -->
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-2">Panjang Balasan</label>
+                            <div class="grid grid-cols-3 gap-1.5 bg-slate-100 p-1 rounded-xl" id="length-selector">
+                                <button type="button" data-length="Singkat" onclick="selectLength('Singkat')" class="length-btn py-1.5 px-2 text-xs font-medium rounded-lg transition-all text-slate-600 hover:text-slate-900">Singkat</button>
+                                <button type="button" data-length="Sedang" onclick="selectLength('Sedang')" class="length-btn py-1.5 px-2 text-xs font-medium rounded-lg transition-all bg-white text-brand-700 shadow-sm">Sedang</button>
+                                <button type="button" data-length="Panjang" onclick="selectLength('Panjang')" class="length-btn py-1.5 px-2 text-xs font-medium rounded-lg transition-all text-slate-600 hover:text-slate-900">Panjang</button>
+                            </div>
+                        </div>
+
+                        <!-- Toggle Emoji -->
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-2">Penggunaan Emoji</label>
+                            <button type="button" id="emoji-toggle" onclick="toggleEmoji()" class="w-full flex items-center justify-between px-3.5 py-2 rounded-xl border border-brand-200 bg-brand-50/60 text-brand-800 text-xs font-medium transition-all">
+                                <span class="flex items-center gap-2">
+                                    <span id="emoji-icon-preview" class="text-base">😊</span>
+                                    <span id="emoji-status-text">Sertakan Emoji</span>
+                                </span>
+                                <div id="emoji-switch-bg" class="w-9 h-5 bg-brand-600 rounded-full relative transition-colors">
+                                    <div id="emoji-switch-dot" class="w-3.5 h-3.5 bg-white rounded-full absolute top-0.5 right-0.5 transition-all shadow-sm"></div>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Tombol Submit Utama -->
+                    <div class="pt-2">
+                        <button type="button" id="generate-btn" onclick="generateReplies()" 
+                            class="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-700 hover:to-indigo-700 text-white font-semibold text-sm shadow-lg shadow-brand-600/25 hover:shadow-brand-600/35 transition-all flex items-center justify-center gap-2.5 active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed">
+                            <i data-lucide="sparkles" class="w-4 h-4"></i>
+                            <span id="generate-btn-text">Buat 3 Saran Balasan</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Riwayat Singkat (Tampil di Desktop pada kolom kiri bawah) -->
+                <div class="hidden lg:block bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="history" class="w-4 h-4 text-brand-600"></i>
+                            <h2 class="text-sm font-semibold text-slate-800">Riwayat Sesi Ini</h2>
+                            <span id="history-count-desktop" class="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">0</span>
+                        </div>
+                        <button onclick="clearHistory()" id="clear-history-desktop" class="hidden text-xs text-rose-500 hover:text-rose-700 font-medium">Hapus Semua</button>
+                    </div>
+                    <div id="history-list-desktop" class="space-y-2.5 max-h-64 overflow-y-auto pr-1">
+                        <div class="text-center py-6 text-slate-400 text-xs">
+                            Belum ada riwayat balasan yang dibuat pada sesi ini.
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Kolom Kanan: Hasil Saran Balasan (5 kolom di desktop) -->
+            <div class="lg:col-span-5 space-y-4 lg:sticky lg:top-24">
+                
+                <!-- Header Hasil -->
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <h2 class="text-base font-bold text-slate-900">Saran Balasan AI</h2>
+                        <span id="active-tone-badge" class="hidden text-xs font-medium px-2.5 py-0.5 rounded-full bg-brand-100 text-brand-700"></span>
+                    </div>
+                    <button type="button" id="regenerate-btn" onclick="generateReplies()" class="hidden inline-flex items-center gap-1.5 text-xs font-medium text-brand-600 hover:text-brand-800 bg-brand-50 hover:bg-brand-100 px-3 py-1.5 rounded-lg transition-colors">
+                        <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                        <span>Buat Ulang</span>
+                    </button>
+                </div>
+
+                <!-- Container Hasil -->
+                <div id="results-container" class="space-y-3.5">
+                    <!-- Empty State Awal -->
+                    <div class="bg-white rounded-2xl border border-dashed border-slate-300 p-8 text-center space-y-3">
+                        <div class="w-12 h-12 rounded-2xl bg-brand-50 text-brand-600 flex items-center justify-center mx-auto">
+                            <i data-lucide="bot" class="w-6 h-6"></i>
+                        </div>
+                        <div class="space-y-1">
+                            <h3 class="text-sm font-semibold text-slate-800">Siap Membantu Membalas Komentar</h3>
+                            <p class="text-xs text-slate-500 max-w-xs mx-auto leading-relaxed">
+                                Masukkan konteks postingan & komentar masuk di sebelah kiri, pilih gaya bahasa, lalu klik <strong>Buat 3 Saran Balasan</strong>.
+                            </p>
+                        </div>
+                        <div class="pt-2">
+                            <button type="button" onclick="applyPreset('kopi')" class="text-xs font-medium text-brand-600 hover:text-brand-700 underline underline-offset-4">
+                                Atau klik di sini untuk coba contoh cepat →
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- Drawer Riwayat untuk Mobile/Tablet -->
+    <div id="mobile-history-drawer" class="fixed inset-0 z-50 hidden lg:hidden">
+        <div class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity" onclick="toggleHistoryDrawer()"></div>
+        <div class="fixed inset-y-0 right-0 max-w-sm w-full bg-white shadow-2xl flex flex-col z-10">
+            <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="history" class="w-4 h-4 text-brand-600"></i>
+                    <h3 class="font-bold text-slate-800 text-sm">Riwayat Sesi</h3>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button onclick="clearHistory()" id="clear-history-mobile" class="hidden text-xs text-rose-500 font-medium">Hapus</button>
+                    <button onclick="toggleHistoryDrawer()" class="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </div>
+            <div id="history-list-mobile" class="p-4 flex-1 overflow-y-auto space-y-3">
+                <p class="text-center text-xs text-slate-400 py-8">Belum ada riwayat pada sesi ini.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="mt-auto border-t border-slate-200/70 bg-white py-4">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-400">
+            <p>Ditenagai oleh <span class="font-medium text-slate-600">Gemini AI</span> • Dirancang untuk kreator & pelaku bisnis</p>
+            <p>Tips: Sesuaikan kembali detail spesifik sebelum memposting balasan.</p>
+        </div>
+    </footer>
+
+    <script>
+        // --- KONFIGURASI & STATE APLIKASI ---
+        const TONES = [
+            { id: 'Ramah & Hangat', label: 'Ramah & Hangat', icon: 'smile', desc: 'Akrab, sopan & bersahabat' },
+            { id: 'Informatif & Profesional', label: 'Informatif & Pro', icon: 'info', desc: 'Jelas, terstruktur & kredibel' },
+            { id: 'Lucu & Santai (Witty)', label: 'Lucu & Santai', icon: 'laugh', desc: 'Cair, asyik & menghibur' },
+            { id: 'Empatik & Suportif', label: 'Empatik & Suportif', icon: 'heart-handshake', desc: 'Penuh perhatian & solutif' },
+            { id: 'Singkat & To-the-point', label: 'Singkat & Padat', icon: 'zap', desc: 'Langsung ke inti jawaban' },
+            { id: 'Persuasif / Call-to-Action', label: 'Persuasif / CTA', icon: 'megaphone', desc: 'Mengajak beli, klik, atau DM' }
+        ];
+
+        const PRESETS = {
+            kopi: {
+                context: "Promo Grand Opening Kedai Kopi Senja cabang Bekasi Timur! Beli 1 Gratis 1 untuk semua varian Es Kopi Susu Gula Aren. Berlaku tanggal 15-17 bulan ini khusus pembelian langsung di tempat (dine-in & takeaway). Alamat: Jl. Ahmad Yani No. 45, Bekasi.",
+                comment: "Min, kalau pesan lewat ojol berlaku gak promonya? Sama buka dari jam berapa ya?",
+                tone: "Ramah & Hangat",
+                length: "Sedang",
+                emoji: true
+            },
+            edukasi: {
+                context: "Tips merawat tanaman hias indoor (Monstera) agar daunnya tidak menguning: 1) Jangan disiram tiap hari, cek kelembapan tanah dulu. 2) Taruh di dekat jendela yang kena cahaya tidak langsung. 3) Lap daun dari debu seminggu sekali.",
+                comment: "Kak kalau ujung daunnya udah terlanjur kering kecokelatan gitu sebaiknya dipotong aja atau dibiarin ya?",
+                tone: "Informatif & Profesional",
+                length: "Sedang",
+                emoji: true
+            },
+            komplain: {
+                context: "Toko online fashion lokal. Pengiriman dilakukan setiap hari kerja jam 16.00 WIB. Jika ada kendala ekspedisi atau barang cacat, pelanggan bisa menghubungi admin via DM dengan menyertakan nomor pesanan.",
+                comment: "Min paket saya statusnya udah 3 hari nyangkut di gudang sortir nih, padahal mau dipake weekend besok :(",
+                tone: "Empatik & Suportif",
+                length: "Sedang",
+                emoji: true
+            },
+            hiburan: {
+                context: "Video reels komedi tentang perjuangan anak kos di tanggal tua yang cuma bisa makan mie instan tapi tetap gaya nongkrong di kafe.",
+                comment: "Gak usah nyindir gitu dong bang, berasa lagi ngaca pas liat videonya wkwk",
+                tone: "Lucu & Santai (Witty)",
+                length: "Singkat",
+                emoji: true
+            }
+        };
+
+        let appState = {
+            selectedTone: 'Ramah & Hangat',
+            selectedLength: 'Sedang',
+            useEmoji: true,
+            isLoading: false,
+            history: []
+        };
+
+        // --- INISIALISASI UI ---
+        document.addEventListener('DOMContentLoaded', () => {
+            renderToneCards();
+            lucide.createIcons();
+
+            // Tutup dropdown preset saat klik di luar
+            document.addEventListener('click', (e) => {
+                const wrapper = document.getElementById('preset-dropdown-wrapper');
+                const menu = document.getElementById('preset-menu');
+                if (wrapper && !wrapper.contains(e.target)) {
+                    menu.classList.add('hidden');
+                }
+            });
+        });
+
+        function renderToneCards() {
+            const grid = document.getElementById('tone-grid');
+            grid.innerHTML = TONES.map(tone => {
+                const isSelected = appState.selectedTone === tone.id;
+                return `
+                    <button type="button" onclick="selectTone('${tone.id}')"
+                        class="text-left p-3 rounded-xl border transition-all flex flex-col justify-between gap-1.5 relative overflow-hidden ${
+                            isSelected 
+                            ? 'border-brand-500 bg-brand-50/70 text-brand-900 ring-2 ring-brand-500/20 shadow-xs' 
+                            : 'border-slate-200 bg-white hover:border-brand-300 hover:bg-slate-50/80 text-slate-700'
+                        }">
+                        <div class="flex items-center justify-between w-full">
+                            <i data-lucide="${tone.icon}" class="w-4 h-4 ${isSelected ? 'text-brand-600' : 'text-slate-400'}"></i>
+                            ${isSelected ? '<span class="w-2 h-2 rounded-full bg-brand-600"></span>' : ''}
+                        </div>
+                        <div>
+                            <div class="text-xs font-semibold leading-tight">${tone.label}</div>
+                            <div class="text-[11px] text-slate-500 leading-tight mt-0.5 line-clamp-1">${tone.desc}</div>
+                        </div>
+                    </button>
+                `;
+            }).join('');
+            lucide.createIcons();
+        }
+
+        // --- INTERAKSI KONTROL ---
+        function selectTone(toneId) {
+            appState.selectedTone = toneId;
+            renderToneCards();
+        }
+
+        function selectLength(length) {
+            appState.selectedLength = length;
+            document.querySelectorAll('.length-btn').forEach(btn => {
+                if (btn.dataset.length === length) {
+                    btn.className = 'length-btn py-1.5 px-2 text-xs font-semibold rounded-lg transition-all bg-white text-brand-700 shadow-xs';
+                } else {
+                    btn.className = 'length-btn py-1.5 px-2 text-xs font-medium rounded-lg transition-all text-slate-600 hover:text-slate-900';
+                }
+            });
+        }
+
+        function toggleEmoji() {
+            appState.useEmoji = !appState.useEmoji;
+            const btn = document.getElementById('emoji-toggle');
+            const text = document.getElementById('emoji-status-text');
+            const icon = document.getElementById('emoji-icon-preview');
+            const switchBg = document.getElementById('emoji-switch-bg');
+            const switchDot = document.getElementById('emoji-switch-dot');
+
+            if (appState.useEmoji) {
+                btn.className = 'w-full flex items-center justify-between px-3.5 py-2 rounded-xl border border-brand-200 bg-brand-50/60 text-brand-800 text-xs font-medium transition-all';
+                text.textContent = 'Sertakan Emoji';
+                icon.textContent = '😊';
+                switchBg.className = 'w-9 h-5 bg-brand-600 rounded-full relative transition-colors';
+                switchDot.className = 'w-3.5 h-3.5 bg-white rounded-full absolute top-0.5 right-0.5 transition-all shadow-xs';
+            } else {
+                btn.className = 'w-full flex items-center justify-between px-3.5 py-2 rounded-xl border border-slate-200 bg-slate-50 text-slate-600 text-xs font-medium transition-all';
+                text.textContent = 'Tanpa Emoji';
+                icon.textContent = '😐';
+                switchBg.className = 'w-9 h-5 bg-slate-300 rounded-full relative transition-colors';
+                switchDot.className = 'w-3.5 h-3.5 bg-white rounded-full absolute top-0.5 left-0.5 transition-all shadow-xs';
+            }
+        }
+
+        function togglePresetMenu() {
+            const menu = document.getElementById('preset-menu');
+            menu.classList.toggle('hidden');
+        }
+
+        function applyPreset(key) {
+            const preset = PRESETS[key];
+            if (!preset) return;
+
+            document.getElementById('post-context').value = preset.context;
+            document.getElementById('incoming-comment').value = preset.comment;
+            selectTone(preset.tone);
+            selectLength(preset.length);
+            
+            if (appState.useEmoji !== preset.emoji) {
+                toggleEmoji();
+            }
+
+            document.getElementById('preset-menu').classList.add('hidden');
+            showToast('Contoh skenario berhasil dimuat!', 'info');
+        }
+
+        function clearField(id) {
+            const el = document.getElementById(id);
+            el.value = '';
+            el.focus();
+        }
+
+        function toggleHistoryDrawer() {
+            const drawer = document.getElementById('mobile-history-drawer');
+            drawer.classList.toggle('hidden');
+        }
+
+        // --- INTEGRASI GEMINI API ---
+        async function fetchGeminiWithRetry(payload, retries = 3) {
+            const apiKey = ""; // Disediakan otomatis oleh runtime environment
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+            for (let attempt = 0; attempt <= retries; attempt++) {
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        if (response.status === 429 && attempt < retries) {
+                            const delay = Math.pow(2, attempt) * 1000;
+                            await new Promise(res => setTimeout(res, delay));
+                            continue;
+                        }
+                        throw new Error(`HTTP Error: ${response.status}`);
+                    }
+
+                    return await response.json();
+                } catch (err) {
+                    if (attempt === retries) throw err;
+                    const delay = Math.pow(2, attempt) * 1000;
+                    await new Promise(res => setTimeout(res, delay));
+                }
+            }
+        }
+
+        async function generateReplies() {
+            if (appState.isLoading) return;
+
+            const contextText = document.getElementById('post-context').value.trim();
+            const commentText = document.getElementById('incoming-comment').value.trim();
+
+            if (!commentText) {
+                showToast('Mohon masukkan komentar yang ingin dibalas terlebih dahulu.', 'error');
+                document.getElementById('incoming-comment').focus();
+                return;
+            }
+
+            setLoadingState(true);
+
+            const lengthInstruction = {
+                'Singkat': '1 kalimat pendek (maksimal 15 kata), padat dan langsung.',
+                'Sedang': '1 sampai 2 kalimat natural (sekitar 15-35 kata), pas untuk kolom komentar.',
+                'Panjang': '2 sampai 4 kalimat lengkap, mendetail, dan komprehensif.'
+            }[appState.selectedLength];
+
+            const emojiInstruction = appState.useEmoji 
+                ? 'Sertakan emoji yang relevan dan natural (tidak berlebihan).' 
+                : 'JANGAN gunakan emoji sama sekali.';
+
+            const systemPrompt = `Kamu adalah asisten media sosial dan community manager profesional berbahasa Indonesia.
+Tugasmu adalah membuat 3 variasi saran balasan komentar yang natural, luwes, tidak kaku seperti robot, dan relevan dengan konteks postingan.
+
+Aturan ketat:
+1. Gunakan Bahasa Indonesia yang natural sesuai gaya yang diminta (hindari bahasa terjemahan kaku).
+2. Gaya/Tone wajib: ${appState.selectedTone}.
+3. Panjang balasan: ${lengthInstruction}
+4. Aturan Emoji: ${emojiInstruction}
+5. Berikan 3 opsi berbeda sudut pandang/susunan kalimat agar pengguna bisa memilih yang paling cocok.
+6. Pastikan fakta dalam balasan merujuk pada Konteks Postingan jika tersedia. Jika informasi yang ditanyakan audiens tidak ada di konteks, berikan jawaban yang sopan/mengarahkan (misal: mengajak cek DM atau link di bio) tanpa mengarang fakta palsu.`;
+
+            const userQuery = `Konteks / Caption Postingan:
+${contextText ? contextText : '(Tidak ada konteks spesifik yang diberikan)'}
+
+Komentar Masuk dari Audiens:
+"${commentText}"
+
+Buatkan 3 variasi saran balasannya.`;
+
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "ARRAY",
+                        description: "Daftar 3 variasi saran balasan komentar",
+                        items: {
+                            type: "OBJECT",
+                            properties: {
+                                label: {
+                                    type: "STRING",
+                                    description: "Label singkat pendekatan opsi ini (misal: 'Opsi 1 • Hangat & Jelas', 'Opsi 2 • Akrab & Mengajak')"
+                                },
+                                replyText: {
+                                    type: "STRING",
+                                    description: "Teks balasan komentar siap pakai"
+                                }
+                            },
+                            required: ["label", "replyText"]
+                        }
+                    }
+                }
+            };
+
+            try {
+                const result = await fetchGeminiWithRetry(payload);
+                const rawText = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+                
+                if (!rawText) {
+                    throw new Error("Respons AI kosong.");
+                }
+
+                const replies = JSON.parse(rawText);
+                renderResults(replies);
+                addToHistory({
+                    id: Date.now(),
+                    context: contextText,
+                    comment: commentText,
+                    tone: appState.selectedTone,
+                    length: appState.selectedLength,
+                    emoji: appState.useEmoji,
+                    replies: replies,
+                    timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+                });
+
+            } catch (error) {
+                console.error("Gagal menghasilkan balasan:", error);
+                showToast('Terjadi kendala saat menghubungi AI. Silakan coba lagi.', 'error');
+                renderErrorState();
+            } finally {
+                setLoadingState(false);
+            }
+        }
+
+        // --- RENDERING HASIL & STATE ---
+        function setLoadingState(loading) {
+            appState.isLoading = loading;
+            const btn = document.getElementById('generate-btn');
+            const btnText = document.getElementById('generate-btn-text');
+            const regenBtn = document.getElementById('regenerate-btn');
+
+            btn.disabled = loading;
+            if (loading) {
+                btnText.textContent = 'Sedang Merangkai Balasan...';
+                regenBtn.classList.add('hidden');
+                renderSkeletonLoader();
+            } else {
+                btnText.textContent = 'Buat 3 Saran Balasan';
+            }
+        }
+
+        function renderSkeletonLoader() {
+            const container = document.getElementById('results-container');
+            container.innerHTML = [1, 2, 3].map(() => `
+                <div class="bg-white rounded-2xl border border-slate-200/80 p-5 space-y-3 animate-pulse">
+                    <div class="flex items-center justify-between">
+                        <div class="h-4 w-32 bg-slate-200 rounded-md"></div>
+                        <div class="h-7 w-20 bg-slate-100 rounded-lg"></div>
+                    </div>
+                    <div class="space-y-2 pt-1">
+                        <div class="h-3.5 bg-slate-200 rounded-md w-full"></div>
+                        <div class="h-3.5 bg-slate-200 rounded-md w-5/6"></div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderErrorState() {
+            const container = document.getElementById('results-container');
+            container.innerHTML = `
+                <div class="bg-rose-50/70 rounded-2xl border border-rose-200 p-6 text-center space-y-3">
+                    <div class="w-10 h-10 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center mx-auto">
+                        <i data-lucide="alert-circle" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-semibold text-rose-900">Gagal Memuat Balasan</h3>
+                        <p class="text-xs text-rose-700 mt-1">Koneksi terganggu atau server sedang sibuk. Klik tombol di bawah untuk mencoba ulang.</p>
+                    </div>
+                    <button onclick="generateReplies()" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-medium rounded-xl transition-colors">
+                        Coba Lagi
+                    </button>
+                </div>
+            `;
+            lucide.createIcons();
+        }
+
+        function renderResults(replies) {
+            const container = document.getElementById('results-container');
+            const badge = document.getElementById('active-tone-badge');
+            const regenBtn = document.getElementById('regenerate-btn');
+
+            badge.textContent = appState.selectedTone;
+            badge.classList.remove('hidden');
+            regenBtn.classList.remove('hidden');
+
+            container.innerHTML = replies.map((item, idx) => {
+                // Escape kutip untuk atribut data
+                const safeText = item.replyText.replace(/"/g, '&quot;');
+                return `
+                    <div class="bg-white rounded-2xl border border-slate-200/90 hover:border-brand-300 shadow-xs hover:shadow-md transition-all p-5 space-y-3 fade-in" style="animation-delay: ${idx * 70}ms">
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="inline-flex items-center gap-1.5 text-xs font-semibold text-brand-700 bg-brand-50 px-2.5 py-1 rounded-lg">
+                                <span class="w-1.5 h-1.5 rounded-full bg-brand-500"></span>
+                                ${escapeHtml(item.label || `Opsi ${idx + 1}`)}
+                            </span>
+                            
+                            <button type="button" onclick="copyReply(this, '${encodeURIComponent(item.replyText)}')"
+                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-100 hover:bg-brand-600 text-slate-700 hover:text-white transition-all active:scale-95">
+                                <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                                <span>Salin Teks</span>
+                            </button>
+                        </div>
+                        
+                        <p class="text-sm text-slate-800 leading-relaxed whitespace-pre-line select-all">${escapeHtml(item.replyText)}</p>
+                    </div>
+                `;
+            }).join('');
+
+            lucide.createIcons();
+        }
+
+        // --- FUNGSI SALIN TEKS (CLIPBOARD) ---
+        function copyReply(btnElement, encodedText) {
+            const text = decodeURIComponent(encodedText);
+            
+            // Menggunakan textarea sementara + execCommand agar kompatibel di dalam iframe
+            const tempInput = document.createElement('textarea');
+            tempInput.value = text;
+            tempInput.style.position = 'fixed';
+            tempInput.style.opacity = '0';
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            
+            let success = false;
+            try {
+                success = document.execCommand('copy');
+            } catch (err) {
+                console.error('Gagal menyalin:', err);
+            }
+            document.body.removeChild(tempInput);
+
+            if (success) {
+                // Ubah tampilan tombol sementara
+                const originalHTML = btnElement.innerHTML;
+                btnElement.className = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-emerald-600 text-white transition-all';
+                btnElement.innerHTML = `<i data-lucide="check" class="w-3.5 h-3.5"></i><span>Tersalin!</span>`;
+                lucide.createIcons();
+                
+                showToast('Teks balasan berhasil disalin ke clipboard!', 'success');
+
+                setTimeout(() => {
+                    btnElement.className = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-100 hover:bg-brand-600 text-slate-700 hover:text-white transition-all active:scale-95';
+                    btnElement.innerHTML = originalHTML;
+                    lucide.createIcons();
+                }, 2000);
+            } else {
+                showToast('Gagal menyalin teks secara otomatis. Silakan salin manual.', 'error');
+            }
+        }
+
+        // --- MANAJEMEN RIWAYAT SESI ---
+        function addToHistory(entry) {
+            appState.history.unshift(entry);
+            if (appState.history.length > 10) {
+                appState.history.pop();
+            }
+            renderHistory();
+        }
+
+        function restoreFromHistory(id) {
+            const item = appState.history.find(h => h.id === id);
+            if (!item) return;
+
+            document.getElementById('post-context').value = item.context;
+            document.getElementById('incoming-comment').value = item.comment;
+            selectTone(item.tone);
+            selectLength(item.length);
+            if (appState.useEmoji !== item.emoji) {
+                toggleEmoji();
+            }
+            renderResults(item.replies);
+
+            // Tutup drawer jika di mobile
+            const drawer = document.getElementById('mobile-history-drawer');
+            if (!drawer.classList.contains('hidden')) {
+                drawer.classList.add('hidden');
+            }
+            showToast('Riwayat balasan dipulihkan.', 'info');
+        }
+
+        function clearHistory() {
+            appState.history = [];
+            renderHistory();
+            showToast('Riwayat sesi telah dibersihkan.', 'info');
+        }
+
+        function renderHistory() {
+            const count = appState.history.length;
+            document.getElementById('history-count-desktop').textContent = count;
+            
+            const clearDesktop = document.getElementById('clear-history-desktop');
+            const clearMobile = document.getElementById('clear-history-mobile');
+            const mobileBadge = document.getElementById('history-badge-mobile');
+
+            if (count > 0) {
+                clearDesktop.classList.remove('hidden');
+                clearMobile.classList.remove('hidden');
+                mobileBadge.classList.remove('hidden');
+            } else {
+                clearDesktop.classList.add('hidden');
+                clearMobile.classList.add('hidden');
+                mobileBadge.classList.add('hidden');
+            }
+
+            const emptyHTML = `<div class="text-center py-6 text-slate-400 text-xs">Belum ada riwayat balasan yang dibuat pada sesi ini.</div>`;
+            
+            const listHTML = count === 0 ? emptyHTML : appState.history.map(item => `
+                <div onclick="restoreFromHistory(${item.id})" 
+                    class="p-3 rounded-xl border border-slate-100 hover:border-brand-200 bg-slate-50/60 hover:bg-brand-50/40 cursor-pointer transition-all group">
+                    <div class="flex items-center justify-between gap-2 mb-1">
+                        <span class="text-[11px] font-semibold text-brand-600 bg-brand-50 px-2 py-0.5 rounded-md">${escapeHtml(item.tone)}</span>
+                        <span class="text-[11px] text-slate-400">${item.timestamp}</span>
+                    </div>
+                    <p class="text-xs font-medium text-slate-700 line-clamp-1 group-hover:text-slate-900">"${escapeHtml(item.comment)}"</p>
+                    <p class="text-[11px] text-slate-400 line-clamp-1 mt-0.5">${escapeHtml(item.replies[0]?.replyText || '')}</p>
+                </div>
+            `).join('');
+
+            document.getElementById('history-list-desktop').innerHTML = listHTML;
+            document.getElementById('history-list-mobile').innerHTML = listHTML;
+        }
+
+        // --- UTILITAS ---
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            const styles = {
+                success: 'bg-slate-900 text-white border-emerald-500/40',
+                error: 'bg-rose-600 text-white border-rose-400/40',
+                info: 'bg-slate-800 text-white border-brand-400/40'
+            };
+
+            const icons = {
+                success: 'check-circle-2',
+                error: 'alert-triangle',
+                info: 'sparkles'
+            };
+
+            toast.className = `pointer-events-auto flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg border text-xs font-medium fade-in ${styles[type] || styles.info}`;
+            toast.innerHTML = `
+                <i data-lucide="${icons[type]}" class="w-4 h-4 shrink-0 ${type === 'success' ? 'text-emerald-400' : ''}"></i>
+                <span>${escapeHtml(message)}</span>
+            `;
+
+            container.appendChild(toast);
+            lucide.createIcons();
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(6px)';
+                toast.style.transition = 'all 0.25s ease';
+                setTimeout(() => toast.remove(), 250);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
