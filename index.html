@@ -1,842 +1,738 @@
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Asisten Penjawab Komentar AI</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts: Inter -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-    
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                    },
-                    colors: {
-                        brand: {
-                            50: '#eef2ff',
-                            100: '#e0e7ff',
-                            200: '#c7d2fe',
-                            300: '#a5b4fc',
-                            400: '#818cf8',
-                            500: '#6366f1',
-                            600: '#4f46e5',
-                            700: '#4338ca',
-                            800: '#3730a3',
-                            900: '#312e81',
-                        }
-                    }
-                }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BalasCepat AI — Asisten Penjawab Komentar</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'sans-serif'] },
+          colors: {
+            brand: {
+              50: '#eef2ff', 100: '#e0e7ff', 200: '#c7d2fe',
+              500: '#6366f1', 600: '#4f46e5', 700: '#4338ca',
             }
+          }
         }
-    </script>
-    <style>
-        /* Kustomisasi scrollbar halus */
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #f8fafc; 
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #cbd5e1; 
-            border-radius: 10px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8; 
-        }
-        .fade-in {
-            animation: fadeIn 0.3s ease-in-out;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(8px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-    </style>
+      }
+    }
+  </script>
+  <style>
+    body { background-color: #f8fafc; color: #0f172a; }
+    .tone-card { transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
+    .tone-card:hover { transform: translateY(-2px); }
+    @keyframes fadeSlideUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-reply { animation: fadeSlideUp 0.35s ease-out forwards; }
+  </style>
 </head>
-<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col antialiased selection:bg-brand-100 selection:text-brand-800">
+<body class="min-h-screen flex flex-col antialiased selection:bg-brand-100 selection:text-brand-700">
 
-    <!-- Notifikasi Toast (Pengganti alert) -->
-    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
-
-    <!-- Header / Navbar -->
-    <header class="bg-white/80 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-30">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500 to-purple-600 flex items-center justify-center text-white shadow-md shadow-brand-500/20">
-                    <i data-lucide="message-square-sparkles" class="w-5 h-5"></i>
-                </div>
-                <div>
-                    <h1 class="font-bold text-lg sm:text-xl text-slate-900 tracking-tight leading-none">BalasCepat <span class="text-brand-600">AI</span></h1>
-                    <p class="text-xs text-slate-500 mt-0.5 hidden sm:block">Asisten Cerdas Penjawab Komentar Media Sosial</p>
-                </div>
-            </div>
-
-            <div class="flex items-center gap-2 sm:gap-3">
-                <!-- Dropdown Contoh Preset -->
-                <div class="relative inline-block text-left" id="preset-dropdown-wrapper">
-                    <button type="button" onclick="togglePresetMenu()" class="inline-flex items-center gap-2 px-3.5 py-2 text-xs sm:text-sm font-medium text-brand-700 bg-brand-50 hover:bg-brand-100 border border-brand-200/80 rounded-xl transition-all active:scale-95">
-                        <i data-lucide="wand-2" class="w-4 h-4"></i>
-                        <span>Coba Contoh</span>
-                        <i data-lucide="chevron-down" class="w-3.5 h-3.5 opacity-70"></i>
-                    </button>
-                    
-                    <!-- Menu Preset -->
-                    <div id="preset-menu" class="hidden origin-top-right absolute right-0 mt-2 w-72 rounded-2xl shadow-xl bg-white ring-1 ring-slate-900/5 divide-y divide-slate-100 focus:outline-none z-40 overflow-hidden">
-                        <div class="px-4 py-2.5 bg-slate-50/80">
-                            <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Pilih Skenario Contoh</p>
-                        </div>
-                        <div class="p-1.5 space-y-1">
-                            <button onclick="applyPreset('kopi')" class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-brand-50 transition-colors group">
-                                <p class="text-sm font-medium text-slate-800 group-hover:text-brand-700">☕ Kedai Kopi & Promo</p>
-                                <p class="text-xs text-slate-500 truncate">Tanya lokasi cabang & harga promo</p>
-                            </button>
-                            <button onclick="applyPreset('edukasi')" class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-brand-50 transition-colors group">
-                                <p class="text-sm font-medium text-slate-800 group-hover:text-brand-700">💡 Konten Edukasi / Tips</p>
-                                <p class="text-xs text-slate-500 truncate">Audiens bertanya detail teknis tambahan</p>
-                            </button>
-                            <button onclick="applyPreset('komplain')" class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-brand-50 transition-colors group">
-                                <p class="text-sm font-medium text-slate-800 group-hover:text-brand-700">📦 Keluhan Pengiriman</p>
-                                <p class="text-xs text-slate-500 truncate">Pelanggan menanyakan paket belum sampai</p>
-                            </button>
-                            <button onclick="applyPreset('hiburan')" class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-brand-50 transition-colors group">
-                                <p class="text-sm font-medium text-slate-800 group-hover:text-brand-700">😂 Konten Hiburan / Meme</p>
-                                <p class="text-xs text-slate-500 truncate">Komentar bercanda dari followers</p>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Tombol Riwayat (Mobile/Tablet toggle) -->
-                <button onclick="toggleHistoryDrawer()" class="lg:hidden relative p-2.5 text-slate-600 hover:text-brand-600 hover:bg-slate-100 rounded-xl transition-colors" title="Riwayat Sesi">
-                    <i data-lucide="history" class="w-5 h-5"></i>
-                    <span id="history-badge-mobile" class="hidden absolute top-1.5 right-1.5 w-2 h-2 bg-brand-600 rounded-full"></span>
-                </button>
-            </div>
+  <!-- Header -->
+  <header class="bg-white/80 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-30">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-600 to-violet-600 flex items-center justify-center text-white shadow-sm shadow-brand-500/20">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+          </svg>
         </div>
-    </header>
-
-    <!-- Main Content -->
-    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
-            
-            <!-- Kolom Kiri: Form Konfigurasi & Input (7 kolom di desktop) -->
-            <div class="lg:col-span-7 space-y-6">
-                
-                <!-- Kartu Input Utama -->
-                <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5 sm:p-6 space-y-5">
-                    
-                    <!-- 1. Input Konteks / Caption -->
-                    <div>
-                        <div class="flex items-center justify-between mb-2">
-                            <label for="post-context" class="flex items-center gap-2 text-sm font-semibold text-slate-800">
-                                <span class="w-6 h-6 rounded-lg bg-brand-50 text-brand-600 flex items-center justify-center text-xs font-bold">1</span>
-                                Konteks / Caption Postingan
-                            </label>
-                            <button type="button" onclick="clearField('post-context')" class="text-xs text-slate-400 hover:text-slate-600 transition-colors">Bersihkan</button>
-                        </div>
-                        <p class="text-xs text-slate-500 mb-2.5">Jelaskan isi postingan, produk, promo, atau topik agar AI memahami latar belakangnya.</p>
-                        <textarea id="post-context" rows="3" 
-                            class="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-sm text-slate-800 placeholder-slate-400 focus:bg-white focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 outline-none transition-all resize-y"
-                            placeholder="Contoh: Postingan Instagram tentang promo Beli 1 Gratis 1 Es Kopi Susu Gula Aren khusus pembukaan cabang baru di Bekasi Timur tanggal 15-17 bulan ini..."></textarea>
-                    </div>
-
-                    <!-- 2. Input Komentar Masuk -->
-                    <div>
-                        <div class="flex items-center justify-between mb-2">
-                            <label for="incoming-comment" class="flex items-center gap-2 text-sm font-semibold text-slate-800">
-                                <span class="w-6 h-6 rounded-lg bg-brand-50 text-brand-600 flex items-center justify-center text-xs font-bold">2</span>
-                                Komentar yang Ingin Dibalas <span class="text-rose-500">*</span>
-                            </label>
-                            <button type="button" onclick="clearField('incoming-comment')" class="text-xs text-slate-400 hover:text-slate-600 transition-colors">Bersihkan</button>
-                        </div>
-                        <textarea id="incoming-comment" rows="2" 
-                            class="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-sm text-slate-800 placeholder-slate-400 focus:bg-white focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 outline-none transition-all resize-y"
-                            placeholder="Tempel komentar dari audiens di sini. Contoh: Min, kalau pesan lewat ojol berlaku gak promonya?"></textarea>
-                    </div>
-
-                    <!-- 3. Pilihan Gaya Balasan (Tone) -->
-                    <div>
-                        <label class="flex items-center gap-2 text-sm font-semibold text-slate-800 mb-3">
-                            <span class="w-6 h-6 rounded-lg bg-brand-50 text-brand-600 flex items-center justify-center text-xs font-bold">3</span>
-                            Pilih Gaya Balasan (Tone)
-                        </label>
-                        
-                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5" id="tone-grid">
-                            <!-- Item Tone dirender via JS agar interaktif & bersih -->
-                        </div>
-                    </div>
-
-                    <!-- 4. Opsi Tambahan (Panjang & Emoji) -->
-                    <div class="pt-2 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <!-- Panjang Balasan -->
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-2">Panjang Balasan</label>
-                            <div class="grid grid-cols-3 gap-1.5 bg-slate-100 p-1 rounded-xl" id="length-selector">
-                                <button type="button" data-length="Singkat" onclick="selectLength('Singkat')" class="length-btn py-1.5 px-2 text-xs font-medium rounded-lg transition-all text-slate-600 hover:text-slate-900">Singkat</button>
-                                <button type="button" data-length="Sedang" onclick="selectLength('Sedang')" class="length-btn py-1.5 px-2 text-xs font-medium rounded-lg transition-all bg-white text-brand-700 shadow-sm">Sedang</button>
-                                <button type="button" data-length="Panjang" onclick="selectLength('Panjang')" class="length-btn py-1.5 px-2 text-xs font-medium rounded-lg transition-all text-slate-600 hover:text-slate-900">Panjang</button>
-                            </div>
-                        </div>
-
-                        <!-- Toggle Emoji -->
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-2">Penggunaan Emoji</label>
-                            <button type="button" id="emoji-toggle" onclick="toggleEmoji()" class="w-full flex items-center justify-between px-3.5 py-2 rounded-xl border border-brand-200 bg-brand-50/60 text-brand-800 text-xs font-medium transition-all">
-                                <span class="flex items-center gap-2">
-                                    <span id="emoji-icon-preview" class="text-base">😊</span>
-                                    <span id="emoji-status-text">Sertakan Emoji</span>
-                                </span>
-                                <div id="emoji-switch-bg" class="w-9 h-5 bg-brand-600 rounded-full relative transition-colors">
-                                    <div id="emoji-switch-dot" class="w-3.5 h-3.5 bg-white rounded-full absolute top-0.5 right-0.5 transition-all shadow-sm"></div>
-                                </div>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Tombol Submit Utama -->
-                    <div class="pt-2">
-                        <button type="button" id="generate-btn" onclick="generateReplies()" 
-                            class="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-700 hover:to-indigo-700 text-white font-semibold text-sm shadow-lg shadow-brand-600/25 hover:shadow-brand-600/35 transition-all flex items-center justify-center gap-2.5 active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed">
-                            <i data-lucide="sparkles" class="w-4 h-4"></i>
-                            <span id="generate-btn-text">Buat 3 Saran Balasan</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Riwayat Singkat (Tampil di Desktop pada kolom kiri bawah) -->
-                <div class="hidden lg:block bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5">
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="flex items-center gap-2">
-                            <i data-lucide="history" class="w-4 h-4 text-brand-600"></i>
-                            <h2 class="text-sm font-semibold text-slate-800">Riwayat Sesi Ini</h2>
-                            <span id="history-count-desktop" class="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">0</span>
-                        </div>
-                        <button onclick="clearHistory()" id="clear-history-desktop" class="hidden text-xs text-rose-500 hover:text-rose-700 font-medium">Hapus Semua</button>
-                    </div>
-                    <div id="history-list-desktop" class="space-y-2.5 max-h-64 overflow-y-auto pr-1">
-                        <div class="text-center py-6 text-slate-400 text-xs">
-                            Belum ada riwayat balasan yang dibuat pada sesi ini.
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-
-            <!-- Kolom Kanan: Hasil Saran Balasan (5 kolom di desktop) -->
-            <div class="lg:col-span-5 space-y-4 lg:sticky lg:top-24">
-                
-                <!-- Header Hasil -->
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                        <h2 class="text-base font-bold text-slate-900">Saran Balasan AI</h2>
-                        <span id="active-tone-badge" class="hidden text-xs font-medium px-2.5 py-0.5 rounded-full bg-brand-100 text-brand-700"></span>
-                    </div>
-                    <button type="button" id="regenerate-btn" onclick="generateReplies()" class="hidden inline-flex items-center gap-1.5 text-xs font-medium text-brand-600 hover:text-brand-800 bg-brand-50 hover:bg-brand-100 px-3 py-1.5 rounded-lg transition-colors">
-                        <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
-                        <span>Buat Ulang</span>
-                    </button>
-                </div>
-
-                <!-- Container Hasil -->
-                <div id="results-container" class="space-y-3.5">
-                    <!-- Empty State Awal -->
-                    <div class="bg-white rounded-2xl border border-dashed border-slate-300 p-8 text-center space-y-3">
-                        <div class="w-12 h-12 rounded-2xl bg-brand-50 text-brand-600 flex items-center justify-center mx-auto">
-                            <i data-lucide="bot" class="w-6 h-6"></i>
-                        </div>
-                        <div class="space-y-1">
-                            <h3 class="text-sm font-semibold text-slate-800">Siap Membantu Membalas Komentar</h3>
-                            <p class="text-xs text-slate-500 max-w-xs mx-auto leading-relaxed">
-                                Masukkan konteks postingan & komentar masuk di sebelah kiri, pilih gaya bahasa, lalu klik <strong>Buat 3 Saran Balasan</strong>.
-                            </p>
-                        </div>
-                        <div class="pt-2">
-                            <button type="button" onclick="applyPreset('kopi')" class="text-xs font-medium text-brand-600 hover:text-brand-700 underline underline-offset-4">
-                                Atau klik di sini untuk coba contoh cepat →
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
+        <div>
+          <h1 class="text-base sm:text-lg font-bold tracking-tight text-slate-900 leading-tight">BalasCepat AI</h1>
+          <p class="text-xs text-slate-500 hidden sm:block">Asisten Cerdas Penjawab Komentar Media Sosial</p>
         </div>
-    </main>
+      </div>
 
-    <!-- Drawer Riwayat untuk Mobile/Tablet -->
-    <div id="mobile-history-drawer" class="fixed inset-0 z-50 hidden lg:hidden">
-        <div class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity" onclick="toggleHistoryDrawer()"></div>
-        <div class="fixed inset-y-0 right-0 max-w-sm w-full bg-white shadow-2xl flex flex-col z-10">
-            <div class="p-4 border-b border-slate-100 flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                    <i data-lucide="history" class="w-4 h-4 text-brand-600"></i>
-                    <h3 class="font-bold text-slate-800 text-sm">Riwayat Sesi</h3>
-                </div>
-                <div class="flex items-center gap-3">
-                    <button onclick="clearHistory()" id="clear-history-mobile" class="hidden text-xs text-rose-500 font-medium">Hapus</button>
-                    <button onclick="toggleHistoryDrawer()" class="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg">
-                        <i data-lucide="x" class="w-5 h-5"></i>
-                    </button>
-                </div>
-            </div>
-            <div id="history-list-mobile" class="p-4 flex-1 overflow-y-auto space-y-3">
-                <p class="text-center text-xs text-slate-400 py-8">Belum ada riwayat pada sesi ini.</p>
-            </div>
+      <div class="flex items-center gap-2">
+        <!-- Preset Dropdown -->
+        <div class="relative">
+          <button id="presetBtn" type="button" class="inline-flex items-center gap-1.5 text-xs sm:text-sm font-medium text-slate-600 hover:text-brand-600 bg-slate-100/80 hover:bg-brand-50 px-3 py-1.5 rounded-lg transition-colors">
+            <svg class="w-4 h-4 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+            </svg>
+            <span>Coba Contoh</span>
+            <svg class="w-3.5 h-3.5 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          </button>
+          <div id="presetMenu" class="hidden absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-lg border border-slate-200/90 py-1.5 z-40">
+            <div class="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Pilih Skenario Contoh</div>
+            <button type="button" data-preset="olshop" class="w-full text-left px-3.5 py-2 text-sm text-slate-700 hover:bg-brand-50 hover:text-brand-700 transition-colors">🛍️ Tanya Stok & Harga Produk</button>
+            <button type="button" data-preset="komplain" class="w-full text-left px-3.5 py-2 text-sm text-slate-700 hover:bg-brand-50 hover:text-brand-700 transition-colors">📦 Keluhan Pengiriman Terlambat</button>
+            <button type="button" data-preset="edukasi" class="w-full text-left px-3.5 py-2 text-sm text-slate-700 hover:bg-brand-50 hover:text-brand-700 transition-colors">💡 Pertanyaan Teknis / Konten Edukasi</button>
+            <button type="button" data-preset="pujian" class="w-full text-left px-3.5 py-2 text-sm text-slate-700 hover:bg-brand-50 hover:text-brand-700 transition-colors">✨ Komentar Pujian & Apresiasi</button>
+          </div>
         </div>
+
+        <!-- History Toggle -->
+        <button id="historyBtn" type="button" title="Riwayat Sesi" class="relative p-2 text-slate-500 hover:text-brand-600 hover:bg-slate-100 rounded-lg transition-colors">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span id="historyBadge" class="hidden absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-brand-600"></span>
+        </button>
+
+        <!-- API Key Settings Button -->
+        <button id="apiKeyBtn" type="button" title="Pengaturan API Key" class="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border transition-colors border-slate-200 text-slate-600 hover:bg-slate-100">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+          </svg>
+          <span id="apiKeyStatusText">API Key</span>
+        </button>
+      </div>
     </div>
+  </header>
 
-    <!-- Footer -->
-    <footer class="mt-auto border-t border-slate-200/70 bg-white py-4">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-400">
-            <p>Ditenagai oleh <span class="font-medium text-slate-600">Gemini AI</span> • Dirancang untuk kreator & pelaku bisnis</p>
-            <p>Tips: Sesuaikan kembali detail spesifik sebelum memposting balasan.</p>
+  <!-- Banner Peringatan API Key -->
+  <div id="apiAlertBanner" class="hidden bg-amber-50 border-b border-amber-200 px-4 py-2.5">
+    <div class="max-w-4xl mx-auto flex flex-wrap items-center justify-between gap-2 text-xs text-amber-800">
+      <span><strong>API Key belum diatur:</strong> Masukkan Gemini API Key Anda agar AI dapat membuat saran balasan.</span>
+      <button type="button" onclick="openApiModal()" class="font-semibold underline hover:text-amber-950">Atur Sekarang &rarr;</button>
+    </div>
+  </div>
+
+  <!-- Main Workspace -->
+  <main class="flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
+
+    <!-- Input Card -->
+    <section class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-5 sm:p-6 space-y-5">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <!-- Konteks -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <label for="contextInput" class="text-sm font-semibold text-slate-800 flex items-center gap-1.5">
+              <span class="w-5 h-5 rounded-md bg-brand-50 text-brand-600 text-xs font-bold flex items-center justify-center">1</span>
+              Konteks / Caption Postingan
+            </label>
+            <button type="button" id="clearContext" class="text-xs text-slate-400 hover:text-slate-600">Bersihkan</button>
+          </div>
+          <p class="text-xs text-slate-500">Jelaskan isi postingan, produk, promo, atau topik agar AI memahami latar belakangnya.</p>
+          <textarea id="contextInput" rows="4" placeholder="Contoh: Promo diskon 30% kopi susu gula aren khusus hari Jumat. Stok terbatas hanya untuk pembelian di aplikasi..." class="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/15 outline-none transition-all resize-none"></textarea>
         </div>
-    </footer>
 
-    <script>
-        // --- KONFIGURASI & STATE APLIKASI ---
-        const TONES = [
-            { id: 'Ramah & Hangat', label: 'Ramah & Hangat', icon: 'smile', desc: 'Akrab, sopan & bersahabat' },
-            { id: 'Informatif & Profesional', label: 'Informatif & Pro', icon: 'info', desc: 'Jelas, terstruktur & kredibel' },
-            { id: 'Lucu & Santai (Witty)', label: 'Lucu & Santai', icon: 'laugh', desc: 'Cair, asyik & menghibur' },
-            { id: 'Empatik & Suportif', label: 'Empatik & Suportif', icon: 'heart-handshake', desc: 'Penuh perhatian & solutif' },
-            { id: 'Singkat & To-the-point', label: 'Singkat & Padat', icon: 'zap', desc: 'Langsung ke inti jawaban' },
-            { id: 'Persuasif / Call-to-Action', label: 'Persuasif / CTA', icon: 'megaphone', desc: 'Mengajak beli, klik, atau DM' }
-        ];
+        <!-- Komentar Audiens -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <label for="commentInput" class="text-sm font-semibold text-slate-800 flex items-center gap-1.5">
+              <span class="w-5 h-5 rounded-md bg-brand-50 text-brand-600 text-xs font-bold flex items-center justify-center">2</span>
+              Komentar yang Ingin Dibalas <span class="text-rose-500">*</span>
+            </label>
+            <button type="button" id="clearComment" class="text-xs text-slate-400 hover:text-slate-600">Bersihkan</button>
+          </div>
+          <p class="text-xs text-slate-500">Tempelkan komentar dari pengikut atau pelanggan yang perlu Anda respons.</p>
+          <textarea id="commentInput" rows="4" placeholder="Contoh: Kak ini berlaku buat cabang Bandung juga nggak? Atau cuma Jakarta aja?" class="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/15 outline-none transition-all resize-none"></textarea>
+        </div>
+      </div>
 
-        const PRESETS = {
-            kopi: {
-                context: "Promo Grand Opening Kedai Kopi Senja cabang Bekasi Timur! Beli 1 Gratis 1 untuk semua varian Es Kopi Susu Gula Aren. Berlaku tanggal 15-17 bulan ini khusus pembelian langsung di tempat (dine-in & takeaway). Alamat: Jl. Ahmad Yani No. 45, Bekasi.",
-                comment: "Min, kalau pesan lewat ojol berlaku gak promonya? Sama buka dari jam berapa ya?",
-                tone: "Ramah & Hangat",
-                length: "Sedang",
-                emoji: true
-            },
-            edukasi: {
-                context: "Tips merawat tanaman hias indoor (Monstera) agar daunnya tidak menguning: 1) Jangan disiram tiap hari, cek kelembapan tanah dulu. 2) Taruh di dekat jendela yang kena cahaya tidak langsung. 3) Lap daun dari debu seminggu sekali.",
-                comment: "Kak kalau ujung daunnya udah terlanjur kering kecokelatan gitu sebaiknya dipotong aja atau dibiarin ya?",
-                tone: "Informatif & Profesional",
-                length: "Sedang",
-                emoji: true
-            },
-            komplain: {
-                context: "Toko online fashion lokal. Pengiriman dilakukan setiap hari kerja jam 16.00 WIB. Jika ada kendala ekspedisi atau barang cacat, pelanggan bisa menghubungi admin via DM dengan menyertakan nomor pesanan.",
-                comment: "Min paket saya statusnya udah 3 hari nyangkut di gudang sortir nih, padahal mau dipake weekend besok :(",
-                tone: "Empatik & Suportif",
-                length: "Sedang",
-                emoji: true
-            },
-            hiburan: {
-                context: "Video reels komedi tentang perjuangan anak kos di tanggal tua yang cuma bisa makan mie instan tapi tetap gaya nongkrong di kafe.",
-                comment: "Gak usah nyindir gitu dong bang, berasa lagi ngaca pas liat videonya wkwk",
-                tone: "Lucu & Santai (Witty)",
-                length: "Singkat",
-                emoji: true
-            }
-        };
+      <hr class="border-slate-100">
 
-        let appState = {
-            selectedTone: 'Ramah & Hangat',
-            selectedLength: 'Sedang',
-            useEmoji: true,
-            isLoading: false,
-            history: []
-        };
+      <!-- Style / Tone Selector -->
+      <div class="space-y-3">
+        <div class="flex items-center justify-between">
+          <label class="text-sm font-semibold text-slate-800 flex items-center gap-1.5">
+            <span class="w-5 h-5 rounded-md bg-brand-50 text-brand-600 text-xs font-bold flex items-center justify-center">3</span>
+            Pilih Gaya Balasan (Tone)
+          </label>
+          <span id="selectedToneLabel" class="text-xs font-medium text-brand-600 bg-brand-50 px-2.5 py-0.5 rounded-full">Ramah & Hangat</span>
+        </div>
 
-        // --- INISIALISASI UI ---
-        document.addEventListener('DOMContentLoaded', () => {
-            renderToneCards();
-            lucide.createIcons();
+        <div id="toneGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+          <button type="button" data-tone="Ramah & Hangat" data-desc="Akrab, sopan, bersahabat, dan membuat audiens merasa dihargai" class="tone-card active text-left p-3 rounded-xl border-2 border-brand-600 bg-brand-50/40 relative">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-brand-600">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              </span>
+              <span class="check-dot w-2 h-2 rounded-full bg-brand-600"></span>
+            </div>
+            <div class="text-xs sm:text-sm font-semibold text-slate-900">Ramah & Hangat</div>
+            <div class="text-[11px] text-slate-500 line-clamp-1 mt-0.5">Akrab, sopan & bersahabat</div>
+          </button>
 
-            // Tutup dropdown preset saat klik di luar
-            document.addEventListener('click', (e) => {
-                const wrapper = document.getElementById('preset-dropdown-wrapper');
-                const menu = document.getElementById('preset-menu');
-                if (wrapper && !wrapper.contains(e.target)) {
-                    menu.classList.add('hidden');
-                }
-            });
+          <button type="button" data-tone="Informatif & Profesional" data-desc="Jelas, terstruktur, kredibel, dan menjawab detail pertanyaan secara akurat" class="tone-card text-left p-3 rounded-xl border border-slate-200 bg-white hover:border-slate-300 relative">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-slate-500">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              </span>
+              <span class="check-dot hidden w-2 h-2 rounded-full bg-brand-600"></span>
+            </div>
+            <div class="text-xs sm:text-sm font-semibold text-slate-900">Informatif & Pro</div>
+            <div class="text-[11px] text-slate-500 line-clamp-1 mt-0.5">Jelas, terstruktur & kredibel</div>
+          </button>
+
+          <button type="button" data-tone="Lucu & Santai" data-desc="Cair, jenaka, menggunakan bahasa gaul yang wajar dan menghibur" class="tone-card text-left p-3 rounded-xl border border-slate-200 bg-white hover:border-slate-300 relative">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-slate-500">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>
+              </span>
+              <span class="check-dot hidden w-2 h-2 rounded-full bg-brand-600"></span>
+            </div>
+            <div class="text-xs sm:text-sm font-semibold text-slate-900">Lucu & Santai</div>
+            <div class="text-[11px] text-slate-500 line-clamp-1 mt-0.5">Cair, asyik & menghibur</div>
+          </button>
+
+          <button type="button" data-tone="Empatik & Suportif" data-desc="Penuh perhatian, menenangkan, meminta maaf dengan tulus jika ada kendala, dan solutif" class="tone-card text-left p-3 rounded-xl border border-slate-200 bg-white hover:border-slate-300 relative">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-slate-500">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+              </span>
+              <span class="check-dot hidden w-2 h-2 rounded-full bg-brand-600"></span>
+            </div>
+            <div class="text-xs sm:text-sm font-semibold text-slate-900">Empatik & Suportif</div>
+            <div class="text-[11px] text-slate-500 line-clamp-1 mt-0.5">Penuh perhatian & solutif</div>
+          </button>
+
+          <button type="button" data-tone="Singkat & Padat" data-desc="To the point, efisien, tidak bertele-tele namun tetap sopan" class="tone-card text-left p-3 rounded-xl border border-slate-200 bg-white hover:border-slate-300 relative">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-slate-500">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+              </span>
+              <span class="check-dot hidden w-2 h-2 rounded-full bg-brand-600"></span>
+            </div>
+            <div class="text-xs sm:text-sm font-semibold text-slate-900">Singkat & Padat</div>
+            <div class="text-[11px] text-slate-500 line-clamp-1 mt-0.5">Langsung ke inti jawaban</div>
+          </button>
+
+          <button type="button" data-tone="Persuasif & Mengajak (CTA)" data-desc="Mendorong audiens untuk mengambil tindakan seperti cek keranjang, DM, atau klik link di bio" class="tone-card text-left p-3 rounded-xl border border-slate-200 bg-white hover:border-slate-300 relative">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-slate-500">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/></svg>
+              </span>
+              <span class="check-dot hidden w-2 h-2 rounded-full bg-brand-600"></span>
+            </div>
+            <div class="text-xs sm:text-sm font-semibold text-slate-900">Persuasif / CTA</div>
+            <div class="text-[11px] text-slate-500 line-clamp-1 mt-0.5">Mengajak beli, klik, atau DM</div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Additional Controls -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+        <div class="space-y-1.5">
+          <label class="text-xs font-semibold text-slate-700">Panjang Balasan</label>
+          <div id="lengthGroup" class="grid grid-cols-3 gap-1.5 bg-slate-100 p-1 rounded-xl">
+            <button type="button" data-length="Singkat (1 kalimat)" class="length-btn py-1.5 text-xs font-medium rounded-lg text-slate-600 hover:text-slate-900 transition-all">Singkat</button>
+            <button type="button" data-length="Sedang (2-3 kalimat)" class="length-btn active py-1.5 text-xs font-semibold rounded-lg bg-white text-brand-600 shadow-sm transition-all">Sedang</button>
+            <button type="button" data-length="Panjang & Detail (3-4 kalimat)" class="length-btn py-1.5 text-xs font-medium rounded-lg text-slate-600 hover:text-slate-900 transition-all">Panjang</button>
+          </div>
+        </div>
+
+        <div class="space-y-1.5">
+          <label class="text-xs font-semibold text-slate-700">Penggunaan Emoji</label>
+          <button type="button" id="emojiToggle" aria-pressed="true" class="w-full flex items-center justify-between px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition-colors">
+            <span class="text-xs font-medium text-slate-700 flex items-center gap-2">
+              <span id="emojiIcon">😊</span>
+              <span id="emojiText">Sertakan Emoji</span>
+            </span>
+            <span id="emojiSwitch" class="w-9 h-5 bg-brand-600 rounded-full relative transition-colors">
+              <span id="emojiKnob" class="absolute top-0.5 left-4 w-4 h-4 bg-white rounded-full shadow transition-all"></span>
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Submit Button -->
+      <div class="pt-2">
+        <button id="generateBtn" type="button" class="w-full py-3 px-5 rounded-xl bg-brand-600 hover:bg-brand-700 active:scale-[0.99] text-white font-semibold text-sm shadow-md shadow-brand-600/20 flex items-center justify-center gap-2 transition-all disabled:opacity-60 disabled:cursor-not-allowed">
+          <svg id="btnIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+          </svg>
+          <span id="btnText">Buat 3 Saran Balasan</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Output Area -->
+    <section id="outputSection" class="space-y-4">
+      <div class="flex items-center justify-between">
+        <h2 class="text-sm font-bold text-slate-800 tracking-tight flex items-center gap-2">
+          <span>Saran Balasan AI</span>
+          <span id="resultToneTag" class="hidden text-[11px] font-medium text-brand-700 bg-brand-100/80 px-2 py-0.5 rounded-md"></span>
+        </h2>
+        <button id="regenerateBtn" type="button" class="hidden text-xs font-medium text-brand-600 hover:text-brand-700 inline-flex items-center gap-1">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+          Buat Ulang
+        </button>
+      </div>
+
+      <!-- Empty State -->
+      <div id="emptyState" class="bg-white/60 border border-dashed border-slate-300 rounded-2xl p-8 text-center space-y-2.5">
+        <div class="w-11 h-11 rounded-full bg-slate-100 text-slate-400 mx-auto flex items-center justify-center">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+        </div>
+        <h3 class="text-sm font-semibold text-slate-700">Belum ada saran balasan</h3>
+        <p class="text-xs text-slate-500 max-w-md mx-auto">Isi konteks postingan serta komentar audiens di atas, pilih gaya bahasa yang diinginkan, lalu klik tombol untuk mendapatkan 3 opsi balasan siap pakai.</p>
+      </div>
+
+      <!-- Loading Skeleton -->
+      <div id="loadingState" class="hidden space-y-3">
+        <div class="bg-white rounded-2xl border border-slate-200/80 p-5 space-y-3 animate-pulse">
+          <div class="h-3.5 bg-slate-200 rounded w-24"></div>
+          <div class="space-y-2"><div class="h-3 bg-slate-100 rounded w-full"></div><div class="h-3 bg-slate-100 rounded w-4/5"></div></div>
+        </div>
+        <div class="bg-white rounded-2xl border border-slate-200/80 p-5 space-y-3 animate-pulse">
+          <div class="h-3.5 bg-slate-200 rounded w-28"></div>
+          <div class="space-y-2"><div class="h-3 bg-slate-100 rounded w-full"></div><div class="h-3 bg-slate-100 rounded w-3/4"></div></div>
+        </div>
+      </div>
+
+      <!-- Error State -->
+      <div id="errorState" class="hidden bg-rose-50 border border-rose-200 rounded-2xl p-6 text-center space-y-3">
+        <div class="w-10 h-10 rounded-full bg-rose-100 text-rose-600 mx-auto flex items-center justify-center">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </div>
+        <div>
+          <h3 class="text-sm font-semibold text-rose-800">Gagal Memuat Balasan</h3>
+          <p id="errorMessage" class="text-xs text-rose-600 mt-1">Pastikan API Key Gemini sudah diisi dengan benar dan koneksi internet stabil.</p>
+        </div>
+        <button id="retryBtn" type="button" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold transition-colors">Coba Lagi</button>
+      </div>
+
+      <!-- Results Container -->
+      <div id="resultsList" class="hidden space-y-3"></div>
+    </section>
+
+  </main>
+
+  <!-- Modal Pengaturan API Key -->
+  <div id="apiModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div id="apiModalBackdrop" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs"></div>
+    <div class="relative bg-white rounded-2xl shadow-xl border border-slate-200 max-w-md w-full p-6 space-y-4 z-10">
+      <div class="flex items-center justify-between">
+        <h3 class="text-base font-bold text-slate-900">Pengaturan Gemini API Key</h3>
+        <button type="button" id="closeApiModal" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <p class="text-xs text-slate-600 leading-relaxed">
+        Kunci API disimpan secara lokal di browser perangkat Anda (<code class="bg-slate-100 px-1 py-0.5 rounded">localStorage</code>) dan tidak dikirim ke server pihak ketiga mana pun selain Google Gemini API.
+      </p>
+      <div class="space-y-1.5">
+        <label for="apiKeyInput" class="text-xs font-semibold text-slate-700">Masukkan Gemini API Key</label>
+        <input id="apiKeyInput" type="password" placeholder="AIzaSy..." class="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-500/15 outline-none" />
+      </div>
+      <div class="flex items-center justify-between pt-2 gap-2">
+        <button type="button" id="removeApiKeyBtn" class="text-xs text-rose-600 hover:underline">Hapus Kunci</button>
+        <div class="flex gap-2">
+          <button type="button" id="cancelApiModal" class="px-4 py-2 rounded-xl text-xs font-medium text-slate-600 hover:bg-slate-100">Batal</button>
+          <button type="button" id="saveApiKeyBtn" class="px-4 py-2 rounded-xl text-xs font-semibold bg-brand-600 hover:bg-brand-700 text-white">Simpan API Key</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- History Drawer -->
+  <div id="historyDrawer" class="hidden fixed inset-0 z-50">
+    <div id="historyBackdrop" class="fixed inset-0 bg-slate-900/30 backdrop-blur-xs"></div>
+    <aside class="fixed right-0 top-0 bottom-0 w-full max-w-md bg-white shadow-2xl border-l border-slate-200 flex flex-col z-10">
+      <div class="p-4 border-b border-slate-200 flex items-center justify-between">
+        <h3 class="text-sm font-bold text-slate-900">Riwayat Sesi</h3>
+        <div class="flex items-center gap-2">
+          <button id="clearHistoryBtn" type="button" class="text-xs text-rose-600 hover:underline">Hapus Semua</button>
+          <button id="closeHistoryBtn" type="button" class="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+      </div>
+      <div id="historyList" class="flex-1 overflow-y-auto p-4 space-y-3">
+        <p class="text-xs text-slate-400 text-center py-8">Belum ada riwayat balasan.</p>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 translate-y-16 opacity-0 bg-slate-900 text-white text-xs font-medium px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 transition-all duration-300 z-50 pointer-events-none">
+    <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+    <span id="toastText">Tersalin!</span>
+  </div>
+
+  <footer class="border-t border-slate-200/70 py-4 mt-8 bg-white/50">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-400">
+      <span>Ditenagai oleh <strong class="font-medium text-slate-600">Gemini AI</strong></span>
+      <span>Tips: Sesuaikan kembali detail spesifik sebelum memposting balasan.</span>
+    </div>
+  </footer>
+
+  <script>
+    let selectedTone = 'Ramah & Hangat';
+    let selectedToneDesc = 'Akrab, sopan, bersahabat, dan membuat audiens merasa dihargai';
+    let selectedLength = 'Sedang (2-3 kalimat)';
+    let includeEmoji = true;
+    let sessionHistory = [];
+    let apiKey = localStorage.getItem('gemini_comment_api_key') || '';
+
+    const PRESETS = {
+      olshop: {
+        context: "Postingan katalog gamis linen series terbaru warna Sage Green & Terracotta. Harga Rp 249.000, tersedia ukuran S sampai XL. Pembelian bisa lewat link di bio atau keranjang kuning. Gratis ongkir minimal belanja Rp 200.000.",
+        comment: "Kak yang warna sage green ukuran L masih ready gak? Tinggi aku 162 kira-kira kepanjangan gak ya?"
+      },
+      komplain: {
+        context: "Toko online fashion lokal. Pengiriman dilakukan setiap hari kerja jam 16.00 WIB. Jika ada kendala ekspedisi atau barang cacat, pelanggan bisa menghubungi admin via DM dengan menyertakan nomor pesanan.",
+        comment: "Min paket saya statusnya udah 3 hari nyangkut di gudang sortir nih, padahal mau dipake weekend besok :("
+      },
+      edukasi: {
+        context: "Video reels tips menabung dana darurat untuk fresh graduate dengan gaji UMR menggunakan metode 50-30-20 dan memisahkan rekening tabungan.",
+        comment: "Kalau masih punya cicilan motor tiap bulan, persentase 50-30-20 nya tetep bisa dipake atau harus diubah kak?"
+      },
+      pujian: {
+        context: "Konten tutorial membuat kopi susu gula aren ala kafe di rumah hanya dengan alat sederhana tanpa mesin espresso.",
+        comment: "Udah nyobain resepnya barusan dan enak banget asli!! Gak perlu jajan kopi di luar lagi tiap pagi haha makasih banyak kak!"
+      }
+    };
+
+    const contextInput = document.getElementById('contextInput');
+    const commentInput = document.getElementById('commentInput');
+    const generateBtn = document.getElementById('generateBtn');
+    const btnText = document.getElementById('btnText');
+    const emptyState = document.getElementById('emptyState');
+    const loadingState = document.getElementById('loadingState');
+    const errorState = document.getElementById('errorState');
+    const errorMessage = document.getElementById('errorMessage');
+    const resultsList = document.getElementById('resultsList');
+    const resultToneTag = document.getElementById('resultToneTag');
+    const regenerateBtn = document.getElementById('regenerateBtn');
+
+    // API Key Management
+    const apiModal = document.getElementById('apiModal');
+    const apiKeyInput = document.getElementById('apiKeyInput');
+    const apiAlertBanner = document.getElementById('apiAlertBanner');
+    const apiKeyBtn = document.getElementById('apiKeyBtn');
+    const apiKeyStatusText = document.getElementById('apiKeyStatusText');
+
+    function updateApiKeyUI() {
+      if (apiKey) {
+        apiAlertBanner.classList.add('hidden');
+        apiKeyBtn.className = 'inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border transition-colors border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100';
+        apiKeyStatusText.textContent = 'API Aktif';
+      } else {
+        apiAlertBanner.classList.remove('hidden');
+        apiKeyBtn.className = 'inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border transition-colors border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100';
+        apiKeyStatusText.textContent = 'Atur API Key';
+      }
+    }
+
+    window.openApiModal = function() {
+      apiKeyInput.value = apiKey;
+      apiModal.classList.remove('hidden');
+    };
+
+    apiKeyBtn.addEventListener('click', openApiModal);
+    document.getElementById('closeApiModal').addEventListener('click', () => apiModal.classList.add('hidden'));
+    document.getElementById('cancelApiModal').addEventListener('click', () => apiModal.classList.add('hidden'));
+    document.getElementById('apiModalBackdrop').addEventListener('click', () => apiModal.classList.add('hidden'));
+
+    document.getElementById('saveApiKeyBtn').addEventListener('click', () => {
+      const val = apiKeyInput.value.trim();
+      if (!val) {
+        showToast('Masukkan API Key terlebih dahulu');
+        return;
+      }
+      apiKey = val;
+      localStorage.setItem('gemini_comment_api_key', apiKey);
+      updateApiKeyUI();
+      apiModal.classList.add('hidden');
+      showToast('API Key berhasil disimpan!');
+    });
+
+    document.getElementById('removeApiKeyBtn').addEventListener('click', () => {
+      apiKey = '';
+      localStorage.removeItem('gemini_comment_api_key');
+      apiKeyInput.value = '';
+      updateApiKeyUI();
+      apiModal.classList.add('hidden');
+      showToast('API Key dihapus');
+    });
+
+    updateApiKeyUI();
+
+    // Tone Selection
+    document.querySelectorAll('.tone-card').forEach(card => {
+      card.addEventListener('click', () => {
+        document.querySelectorAll('.tone-card').forEach(c => {
+          c.classList.remove('active', 'border-2', 'border-brand-600', 'bg-brand-50/40');
+          c.classList.add('border', 'border-slate-200', 'bg-white');
+          c.querySelector('.check-dot').classList.add('hidden');
         });
+        card.classList.remove('border', 'border-slate-200', 'bg-white');
+        card.classList.add('active', 'border-2', 'border-brand-600', 'bg-brand-50/40');
+        card.querySelector('.check-dot').classList.remove('hidden');
 
-        function renderToneCards() {
-            const grid = document.getElementById('tone-grid');
-            grid.innerHTML = TONES.map(tone => {
-                const isSelected = appState.selectedTone === tone.id;
-                return `
-                    <button type="button" onclick="selectTone('${tone.id}')"
-                        class="text-left p-3 rounded-xl border transition-all flex flex-col justify-between gap-1.5 relative overflow-hidden ${
-                            isSelected 
-                            ? 'border-brand-500 bg-brand-50/70 text-brand-900 ring-2 ring-brand-500/20 shadow-xs' 
-                            : 'border-slate-200 bg-white hover:border-brand-300 hover:bg-slate-50/80 text-slate-700'
-                        }">
-                        <div class="flex items-center justify-between w-full">
-                            <i data-lucide="${tone.icon}" class="w-4 h-4 ${isSelected ? 'text-brand-600' : 'text-slate-400'}"></i>
-                            ${isSelected ? '<span class="w-2 h-2 rounded-full bg-brand-600"></span>' : ''}
-                        </div>
-                        <div>
-                            <div class="text-xs font-semibold leading-tight">${tone.label}</div>
-                            <div class="text-[11px] text-slate-500 leading-tight mt-0.5 line-clamp-1">${tone.desc}</div>
-                        </div>
-                    </button>
-                `;
-            }).join('');
-            lucide.createIcons();
+        selectedTone = card.dataset.tone;
+        selectedToneDesc = card.dataset.desc;
+        document.getElementById('selectedToneLabel').textContent = selectedTone;
+      });
+    });
+
+    // Length Selection
+    document.querySelectorAll('.length-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.length-btn').forEach(b => {
+          b.classList.remove('active', 'bg-white', 'text-brand-600', 'shadow-sm', 'font-semibold');
+          b.classList.add('text-slate-600', 'font-medium');
+        });
+        btn.classList.add('active', 'bg-white', 'text-brand-600', 'shadow-sm', 'font-semibold');
+        btn.classList.remove('text-slate-600', 'font-medium');
+        selectedLength = btn.dataset.length;
+      });
+    });
+
+    // Emoji Toggle
+    const emojiToggle = document.getElementById('emojiToggle');
+    emojiToggle.addEventListener('click', () => {
+      includeEmoji = !includeEmoji;
+      emojiToggle.setAttribute('aria-pressed', includeEmoji);
+      document.getElementById('emojiSwitch').classList.toggle('bg-brand-600', includeEmoji);
+      document.getElementById('emojiSwitch').classList.toggle('bg-slate-300', !includeEmoji);
+      document.getElementById('emojiKnob').classList.toggle('left-4', includeEmoji);
+      document.getElementById('emojiKnob').classList.toggle('left-0.5', !includeEmoji);
+      document.getElementById('emojiText').textContent = includeEmoji ? 'Sertakan Emoji' : 'Tanpa Emoji';
+      document.getElementById('emojiIcon').textContent = includeEmoji ? '😊' : '🚫';
+    });
+
+    // Clear Buttons
+    document.getElementById('clearContext').addEventListener('click', () => { contextInput.value = ''; contextInput.focus(); });
+    document.getElementById('clearComment').addEventListener('click', () => { commentInput.value = ''; commentInput.focus(); });
+
+    // Presets
+    const presetBtn = document.getElementById('presetBtn');
+    const presetMenu = document.getElementById('presetMenu');
+    presetBtn.addEventListener('click', (e) => { e.stopPropagation(); presetMenu.classList.toggle('hidden'); });
+    document.addEventListener('click', () => presetMenu.classList.add('hidden'));
+    presetMenu.querySelectorAll('button[data-preset]').forEach(item => {
+      item.addEventListener('click', () => {
+        const data = PRESETS[item.dataset.preset];
+        if (data) {
+          contextInput.value = data.context;
+          commentInput.value = data.comment;
+          showToast('Contoh skenario dimuat');
         }
+      });
+    });
 
-        // --- INTERAKSI KONTROL ---
-        function selectTone(toneId) {
-            appState.selectedTone = toneId;
-            renderToneCards();
+    // Toast
+    let toastTimer;
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      document.getElementById('toastText').textContent = msg;
+      toast.classList.remove('translate-y-16', 'opacity-0');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.add('translate-y-16', 'opacity-0'), 2500);
+    }
+
+    async function copyText(text, btnElement) {
+      try {
+        await navigator.clipboard.writeText(text);
+        showToast('Balasan berhasil disalin!');
+        if (btnElement) {
+          const orig = btnElement.innerHTML;
+          btnElement.innerHTML = `<svg class="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span class="text-emerald-700 font-semibold">Tersalin</span>`;
+          setTimeout(() => { btnElement.innerHTML = orig; }, 1800);
         }
+      } catch (err) {
+        showToast('Gagal menyalin teks');
+      }
+    }
 
-        function selectLength(length) {
-            appState.selectedLength = length;
-            document.querySelectorAll('.length-btn').forEach(btn => {
-                if (btn.dataset.length === length) {
-                    btn.className = 'length-btn py-1.5 px-2 text-xs font-semibold rounded-lg transition-all bg-white text-brand-700 shadow-xs';
-                } else {
-                    btn.className = 'length-btn py-1.5 px-2 text-xs font-medium rounded-lg transition-all text-slate-600 hover:text-slate-900';
-                }
-            });
-        }
+    // Call Gemini API
+    async function generateReplies() {
+      if (!apiKey) {
+        openApiModal();
+        showToast('Silakan masukkan Gemini API Key dulu');
+        return;
+      }
 
-        function toggleEmoji() {
-            appState.useEmoji = !appState.useEmoji;
-            const btn = document.getElementById('emoji-toggle');
-            const text = document.getElementById('emoji-status-text');
-            const icon = document.getElementById('emoji-icon-preview');
-            const switchBg = document.getElementById('emoji-switch-bg');
-            const switchDot = document.getElementById('emoji-switch-dot');
+      const comment = commentInput.value.trim();
+      const context = contextInput.value.trim();
 
-            if (appState.useEmoji) {
-                btn.className = 'w-full flex items-center justify-between px-3.5 py-2 rounded-xl border border-brand-200 bg-brand-50/60 text-brand-800 text-xs font-medium transition-all';
-                text.textContent = 'Sertakan Emoji';
-                icon.textContent = '😊';
-                switchBg.className = 'w-9 h-5 bg-brand-600 rounded-full relative transition-colors';
-                switchDot.className = 'w-3.5 h-3.5 bg-white rounded-full absolute top-0.5 right-0.5 transition-all shadow-xs';
-            } else {
-                btn.className = 'w-full flex items-center justify-between px-3.5 py-2 rounded-xl border border-slate-200 bg-slate-50 text-slate-600 text-xs font-medium transition-all';
-                text.textContent = 'Tanpa Emoji';
-                icon.textContent = '😐';
-                switchBg.className = 'w-9 h-5 bg-slate-300 rounded-full relative transition-colors';
-                switchDot.className = 'w-3.5 h-3.5 bg-white rounded-full absolute top-0.5 left-0.5 transition-all shadow-xs';
-            }
-        }
+      if (!comment) {
+        commentInput.focus();
+        commentInput.classList.add('border-rose-400', 'ring-2', 'ring-rose-500/20');
+        setTimeout(() => commentInput.classList.remove('border-rose-400', 'ring-2', 'ring-rose-500/20'), 1500);
+        showToast('Masukkan komentar yang ingin dibalas terlebih dahulu');
+        return;
+      }
 
-        function togglePresetMenu() {
-            const menu = document.getElementById('preset-menu');
-            menu.classList.toggle('hidden');
-        }
+      generateBtn.disabled = true;
+      btnText.textContent = 'Sedang Merangkai Balasan...';
+      emptyState.classList.add('hidden');
+      errorState.classList.add('hidden');
+      resultsList.classList.add('hidden');
+      loadingState.classList.remove('hidden');
 
-        function applyPreset(key) {
-            const preset = PRESETS[key];
-            if (!preset) return;
-
-            document.getElementById('post-context').value = preset.context;
-            document.getElementById('incoming-comment').value = preset.comment;
-            selectTone(preset.tone);
-            selectLength(preset.length);
-            
-            if (appState.useEmoji !== preset.emoji) {
-                toggleEmoji();
-            }
-
-            document.getElementById('preset-menu').classList.add('hidden');
-            showToast('Contoh skenario berhasil dimuat!', 'info');
-        }
-
-        function clearField(id) {
-            const el = document.getElementById(id);
-            el.value = '';
-            el.focus();
-        }
-
-        function toggleHistoryDrawer() {
-            const drawer = document.getElementById('mobile-history-drawer');
-            drawer.classList.toggle('hidden');
-        }
-
-        // --- INTEGRASI GEMINI API ---
-        async function fetchGeminiWithRetry(payload, retries = 3) {
-            const apiKey = ""; // Disediakan otomatis oleh runtime environment
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
-
-            for (let attempt = 0; attempt <= retries; attempt++) {
-                try {
-                    const response = await fetch(apiUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-
-                    if (!response.ok) {
-                        if (response.status === 429 && attempt < retries) {
-                            const delay = Math.pow(2, attempt) * 1000;
-                            await new Promise(res => setTimeout(res, delay));
-                            continue;
-                        }
-                        throw new Error(`HTTP Error: ${response.status}`);
-                    }
-
-                    return await response.json();
-                } catch (err) {
-                    if (attempt === retries) throw err;
-                    const delay = Math.pow(2, attempt) * 1000;
-                    await new Promise(res => setTimeout(res, delay));
-                }
-            }
-        }
-
-        async function generateReplies() {
-            if (appState.isLoading) return;
-
-            const contextText = document.getElementById('post-context').value.trim();
-            const commentText = document.getElementById('incoming-comment').value.trim();
-
-            if (!commentText) {
-                showToast('Mohon masukkan komentar yang ingin dibalas terlebih dahulu.', 'error');
-                document.getElementById('incoming-comment').focus();
-                return;
-            }
-
-            setLoadingState(true);
-
-            const lengthInstruction = {
-                'Singkat': '1 kalimat pendek (maksimal 15 kata), padat dan langsung.',
-                'Sedang': '1 sampai 2 kalimat natural (sekitar 15-35 kata), pas untuk kolom komentar.',
-                'Panjang': '2 sampai 4 kalimat lengkap, mendetail, dan komprehensif.'
-            }[appState.selectedLength];
-
-            const emojiInstruction = appState.useEmoji 
-                ? 'Sertakan emoji yang relevan dan natural (tidak berlebihan).' 
-                : 'JANGAN gunakan emoji sama sekali.';
-
-            const systemPrompt = `Kamu adalah asisten media sosial dan community manager profesional berbahasa Indonesia.
-Tugasmu adalah membuat 3 variasi saran balasan komentar yang natural, luwes, tidak kaku seperti robot, dan relevan dengan konteks postingan.
+      const systemPrompt = `Kamu adalah asisten ahli manajemen media sosial berbahasa Indonesia yang bertugas membuat saran balasan komentar.
+Tugasmu adalah menghasilkan 3 variasi balasan komentar yang natural, tidak kaku seperti robot, dan relevan dengan konteks postingan.
 
 Aturan ketat:
-1. Gunakan Bahasa Indonesia yang natural sesuai gaya yang diminta (hindari bahasa terjemahan kaku).
-2. Gaya/Tone wajib: ${appState.selectedTone}.
-3. Panjang balasan: ${lengthInstruction}
-4. Aturan Emoji: ${emojiInstruction}
-5. Berikan 3 opsi berbeda sudut pandang/susunan kalimat agar pengguna bisa memilih yang paling cocok.
-6. Pastikan fakta dalam balasan merujuk pada Konteks Postingan jika tersedia. Jika informasi yang ditanyakan audiens tidak ada di konteks, berikan jawaban yang sopan/mengarahkan (misal: mengajak cek DM atau link di bio) tanpa mengarang fakta palsu.`;
+1. Gaya bahasa utama: ${selectedTone} (${selectedToneDesc}).
+2. Target panjang balasan: ${selectedLength}.
+3. Penggunaan emoji: ${includeEmoji ? 'Gunakan emoji yang relevan dan wajar agar lebih ekspresif.' : 'JANGAN gunakan emoji sama sekali.'}
+4. Jika konteks tidak menyebutkan informasi spesifik yang ditanyakan komentator, arahkan dengan sopan (misal mengajak DM atau mengecek deskripsi) tanpa mengarang fakta palsu.
+5. Gunakan sapaan yang natural di media sosial Indonesia (seperti Kak, Halo, atau sesuai konteks).`;
 
-            const userQuery = `Konteks / Caption Postingan:
-${contextText ? contextText : '(Tidak ada konteks spesifik yang diberikan)'}
+      const userQuery = `Konteks / Caption Postingan:
+${context ? context : '(Tidak ada konteks spesifik yang diberikan, jawab berdasarkan komentar saja)'}
 
-Komentar Masuk dari Audiens:
-"${commentText}"
+Komentar Audiens yang Perlu Dibalas:
+"${comment}"
 
-Buatkan 3 variasi saran balasannya.`;
+Buatlah 3 variasi opsi balasan dengan pendekatan sedikit berbeda namun tetap dalam gaya ${selectedTone}.`;
 
-            const payload = {
-                contents: [{ parts: [{ text: userQuery }] }],
-                systemInstruction: { parts: [{ text: systemPrompt }] },
-                generationConfig: {
-                    responseMimeType: "application/json",
-                    responseSchema: {
-                        type: "ARRAY",
-                        description: "Daftar 3 variasi saran balasan komentar",
-                        items: {
-                            type: "OBJECT",
-                            properties: {
-                                label: {
-                                    type: "STRING",
-                                    description: "Label singkat pendekatan opsi ini (misal: 'Opsi 1 • Hangat & Jelas', 'Opsi 2 • Akrab & Mengajak')"
-                                },
-                                replyText: {
-                                    type: "STRING",
-                                    description: "Teks balasan komentar siap pakai"
-                                }
-                            },
-                            required: ["label", "replyText"]
-                        }
-                    }
+      const payload = {
+        contents: [{ parts: [{ text: userQuery }] }],
+        systemInstruction: { parts: [{ text: systemPrompt }] },
+        generationConfig: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: "OBJECT",
+            properties: {
+              replies: {
+                type: "ARRAY",
+                items: {
+                  type: "OBJECT",
+                  properties: {
+                    label: { type: "STRING" },
+                    text: { type: "STRING" }
+                  },
+                  required: ["label", "text"]
                 }
-            };
+              }
+            },
+            required: ["replies"]
+          }
+        }
+      };
 
-            try {
-                const result = await fetchGeminiWithRetry(payload);
-                const rawText = result?.candidates?.[0]?.content?.parts?.[0]?.text;
-                
-                if (!rawText) {
-                    throw new Error("Respons AI kosong.");
-                }
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`;
 
-                const replies = JSON.parse(rawText);
-                renderResults(replies);
-                addToHistory({
-                    id: Date.now(),
-                    context: contextText,
-                    comment: commentText,
-                    tone: appState.selectedTone,
-                    length: appState.selectedLength,
-                    emoji: appState.useEmoji,
-                    replies: replies,
-                    timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
-                });
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
 
-            } catch (error) {
-                console.error("Gagal menghasilkan balasan:", error);
-                showToast('Terjadi kendala saat menghubungi AI. Silakan coba lagi.', 'error');
-                renderErrorState();
-            } finally {
-                setLoadingState(false);
-            }
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data?.error?.message || `HTTP Error ${res.status}`);
         }
 
-        // --- RENDERING HASIL & STATE ---
-        function setLoadingState(loading) {
-            appState.isLoading = loading;
-            const btn = document.getElementById('generate-btn');
-            const btnText = document.getElementById('generate-btn-text');
-            const regenBtn = document.getElementById('regenerate-btn');
+        const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!rawText) throw new Error('Respons AI kosong');
 
-            btn.disabled = loading;
-            if (loading) {
-                btnText.textContent = 'Sedang Merangkai Balasan...';
-                regenBtn.classList.add('hidden');
-                renderSkeletonLoader();
-            } else {
-                btnText.textContent = 'Buat 3 Saran Balasan';
-            }
+        const parsed = JSON.parse(rawText);
+        if (!parsed.replies || !Array.isArray(parsed.replies)) {
+          throw new Error('Format JSON tidak sesuai');
         }
 
-        function renderSkeletonLoader() {
-            const container = document.getElementById('results-container');
-            container.innerHTML = [1, 2, 3].map(() => `
-                <div class="bg-white rounded-2xl border border-slate-200/80 p-5 space-y-3 animate-pulse">
-                    <div class="flex items-center justify-between">
-                        <div class="h-4 w-32 bg-slate-200 rounded-md"></div>
-                        <div class="h-7 w-20 bg-slate-100 rounded-lg"></div>
-                    </div>
-                    <div class="space-y-2 pt-1">
-                        <div class="h-3.5 bg-slate-200 rounded-md w-full"></div>
-                        <div class="h-3.5 bg-slate-200 rounded-md w-5/6"></div>
-                    </div>
-                </div>
-            `).join('');
-        }
+        renderResults(parsed.replies);
+        saveToHistory({ context, comment, tone: selectedTone, replies: parsed.replies });
 
-        function renderErrorState() {
-            const container = document.getElementById('results-container');
-            container.innerHTML = `
-                <div class="bg-rose-50/70 rounded-2xl border border-rose-200 p-6 text-center space-y-3">
-                    <div class="w-10 h-10 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center mx-auto">
-                        <i data-lucide="alert-circle" class="w-5 h-5"></i>
-                    </div>
-                    <div>
-                        <h3 class="text-sm font-semibold text-rose-900">Gagal Memuat Balasan</h3>
-                        <p class="text-xs text-rose-700 mt-1">Koneksi terganggu atau server sedang sibuk. Klik tombol di bawah untuk mencoba ulang.</p>
-                    </div>
-                    <button onclick="generateReplies()" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-medium rounded-xl transition-colors">
-                        Coba Lagi
-                    </button>
-                </div>
-            `;
-            lucide.createIcons();
-        }
+      } catch (err) {
+        console.error('Gemini API Error:', err);
+        loadingState.classList.add('hidden');
+        errorMessage.textContent = err.message.includes('API key') 
+          ? 'API Key tidak valid. Klik tombol API Key di kanan atas untuk memperbaruinya.' 
+          : `Terjadi kendala: ${err.message}`;
+        errorState.classList.remove('hidden');
+      } finally {
+        generateBtn.disabled = false;
+        btnText.textContent = 'Buat 3 Saran Balasan';
+      }
+    }
 
-        function renderResults(replies) {
-            const container = document.getElementById('results-container');
-            const badge = document.getElementById('active-tone-badge');
-            const regenBtn = document.getElementById('regenerate-btn');
+    function renderResults(replies) {
+      loadingState.classList.add('hidden');
+      errorState.classList.add('hidden');
+      resultsList.innerHTML = '';
 
-            badge.textContent = appState.selectedTone;
-            badge.classList.remove('hidden');
-            regenBtn.classList.remove('hidden');
+      resultToneTag.textContent = selectedTone;
+      resultToneTag.classList.remove('hidden');
+      regenerateBtn.classList.remove('hidden');
 
-            container.innerHTML = replies.map((item, idx) => {
-                // Escape kutip untuk atribut data
-                const safeText = item.replyText.replace(/"/g, '&quot;');
-                return `
-                    <div class="bg-white rounded-2xl border border-slate-200/90 hover:border-brand-300 shadow-xs hover:shadow-md transition-all p-5 space-y-3 fade-in" style="animation-delay: ${idx * 70}ms">
-                        <div class="flex items-center justify-between gap-2">
-                            <span class="inline-flex items-center gap-1.5 text-xs font-semibold text-brand-700 bg-brand-50 px-2.5 py-1 rounded-lg">
-                                <span class="w-1.5 h-1.5 rounded-full bg-brand-500"></span>
-                                ${escapeHtml(item.label || `Opsi ${idx + 1}`)}
-                            </span>
-                            
-                            <button type="button" onclick="copyReply(this, '${encodeURIComponent(item.replyText)}')"
-                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-100 hover:bg-brand-600 text-slate-700 hover:text-white transition-all active:scale-95">
-                                <i data-lucide="copy" class="w-3.5 h-3.5"></i>
-                                <span>Salin Teks</span>
-                            </button>
-                        </div>
-                        
-                        <p class="text-sm text-slate-800 leading-relaxed whitespace-pre-line select-all">${escapeHtml(item.replyText)}</p>
-                    </div>
-                `;
-            }).join('');
+      replies.forEach((item, index) => {
+        const card = document.createElement('div');
+        card.style.animationDelay = `${index * 80}ms`;
+        card.className = 'animate-reply opacity-0 bg-white rounded-2xl border border-slate-200/90 hover:border-brand-300 shadow-xs p-4 sm:p-5 transition-colors space-y-3';
 
-            lucide.createIcons();
-        }
+        card.innerHTML = `
+          <div class="flex items-center justify-between gap-2">
+            <span class="inline-flex items-center gap-1.5 text-xs font-semibold text-brand-700 bg-brand-50 px-2.5 py-1 rounded-lg">
+              <span class="w-1.5 h-1.5 rounded-full bg-brand-500"></span>
+              Opsi ${index + 1}: ${escapeHtml(item.label || 'Saran Balasan')}
+            </span>
+            <button type="button" class="copy-btn inline-flex items-center gap-1.5 text-xs font-medium text-slate-600 hover:text-brand-600 bg-slate-100 hover:bg-brand-50 px-3 py-1.5 rounded-lg transition-colors">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+              <span>Salin Teks</span>
+            </button>
+          </div>
+          <p class="text-sm text-slate-800 leading-relaxed whitespace-pre-line select-all">${escapeHtml(item.text)}</p>
+        `;
 
-        // --- FUNGSI SALIN TEKS (CLIPBOARD) ---
-        function copyReply(btnElement, encodedText) {
-            const text = decodeURIComponent(encodedText);
-            
-            // Menggunakan textarea sementara + execCommand agar kompatibel di dalam iframe
-            const tempInput = document.createElement('textarea');
-            tempInput.value = text;
-            tempInput.style.position = 'fixed';
-            tempInput.style.opacity = '0';
-            document.body.appendChild(tempInput);
-            tempInput.select();
-            
-            let success = false;
-            try {
-                success = document.execCommand('copy');
-            } catch (err) {
-                console.error('Gagal menyalin:', err);
-            }
-            document.body.removeChild(tempInput);
+        const copyBtn = card.querySelector('.copy-btn');
+        copyBtn.addEventListener('click', () => copyText(item.text, copyBtn));
+        resultsList.appendChild(card);
+      });
 
-            if (success) {
-                // Ubah tampilan tombol sementara
-                const originalHTML = btnElement.innerHTML;
-                btnElement.className = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-emerald-600 text-white transition-all';
-                btnElement.innerHTML = `<i data-lucide="check" class="w-3.5 h-3.5"></i><span>Tersalin!</span>`;
-                lucide.createIcons();
-                
-                showToast('Teks balasan berhasil disalin ke clipboard!', 'success');
+      resultsList.classList.remove('hidden');
+    }
 
-                setTimeout(() => {
-                    btnElement.className = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-100 hover:bg-brand-600 text-slate-700 hover:text-white transition-all active:scale-95';
-                    btnElement.innerHTML = originalHTML;
-                    lucide.createIcons();
-                }, 2000);
-            } else {
-                showToast('Gagal menyalin teks secara otomatis. Silakan salin manual.', 'error');
-            }
-        }
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
 
-        // --- MANAJEMEN RIWAYAT SESI ---
-        function addToHistory(entry) {
-            appState.history.unshift(entry);
-            if (appState.history.length > 10) {
-                appState.history.pop();
-            }
-            renderHistory();
-        }
+    function saveToHistory(entry) {
+      sessionHistory.unshift({ ...entry, id: Date.now() });
+      if (sessionHistory.length > 15) sessionHistory.pop();
+      document.getElementById('historyBadge').classList.remove('hidden');
+      renderHistory();
+    }
 
-        function restoreFromHistory(id) {
-            const item = appState.history.find(h => h.id === id);
-            if (!item) return;
+    function renderHistory() {
+      const historyList = document.getElementById('historyList');
+      if (sessionHistory.length === 0) {
+        historyList.innerHTML = '<p class="text-xs text-slate-400 text-center py-8">Belum ada riwayat balasan.</p>';
+        document.getElementById('historyBadge').classList.add('hidden');
+        return;
+      }
 
-            document.getElementById('post-context').value = item.context;
-            document.getElementById('incoming-comment').value = item.comment;
-            selectTone(item.tone);
-            selectLength(item.length);
-            if (appState.useEmoji !== item.emoji) {
-                toggleEmoji();
-            }
-            renderResults(item.replies);
+      historyList.innerHTML = '';
+      sessionHistory.forEach(item => {
+        const el = document.createElement('div');
+        el.className = 'p-3.5 rounded-xl border border-slate-200 hover:border-brand-300 bg-slate-50/50 space-y-2 cursor-pointer transition-colors';
+        el.innerHTML = `
+          <div class="flex items-center justify-between text-[11px] text-slate-500">
+            <span class="font-semibold text-brand-600">${escapeHtml(item.tone)}</span>
+            <span>${item.replies.length} opsi</span>
+          </div>
+          <p class="text-xs text-slate-700 font-medium line-clamp-2">"${escapeHtml(item.comment)}"</p>
+        `;
+        el.addEventListener('click', () => {
+          contextInput.value = item.context;
+          commentInput.value = item.comment;
+          selectedTone = item.tone;
+          renderResults(item.replies);
+          document.getElementById('historyDrawer').classList.add('hidden');
+          showToast('Sesi dipulihkan');
+        });
+        historyList.appendChild(el);
+      });
+    }
 
-            // Tutup drawer jika di mobile
-            const drawer = document.getElementById('mobile-history-drawer');
-            if (!drawer.classList.contains('hidden')) {
-                drawer.classList.add('hidden');
-            }
-            showToast('Riwayat balasan dipulihkan.', 'info');
-        }
+    document.getElementById('historyBtn').addEventListener('click', () => document.getElementById('historyDrawer').classList.remove('hidden'));
+    document.getElementById('closeHistoryBtn').addEventListener('click', () => document.getElementById('historyDrawer').classList.add('hidden'));
+    document.getElementById('historyBackdrop').addEventListener('click', () => document.getElementById('historyDrawer').classList.add('hidden'));
+    document.getElementById('clearHistoryBtn').addEventListener('click', () => { sessionHistory = []; renderHistory(); });
 
-        function clearHistory() {
-            appState.history = [];
-            renderHistory();
-            showToast('Riwayat sesi telah dibersihkan.', 'info');
-        }
-
-        function renderHistory() {
-            const count = appState.history.length;
-            document.getElementById('history-count-desktop').textContent = count;
-            
-            const clearDesktop = document.getElementById('clear-history-desktop');
-            const clearMobile = document.getElementById('clear-history-mobile');
-            const mobileBadge = document.getElementById('history-badge-mobile');
-
-            if (count > 0) {
-                clearDesktop.classList.remove('hidden');
-                clearMobile.classList.remove('hidden');
-                mobileBadge.classList.remove('hidden');
-            } else {
-                clearDesktop.classList.add('hidden');
-                clearMobile.classList.add('hidden');
-                mobileBadge.classList.add('hidden');
-            }
-
-            const emptyHTML = `<div class="text-center py-6 text-slate-400 text-xs">Belum ada riwayat balasan yang dibuat pada sesi ini.</div>`;
-            
-            const listHTML = count === 0 ? emptyHTML : appState.history.map(item => `
-                <div onclick="restoreFromHistory(${item.id})" 
-                    class="p-3 rounded-xl border border-slate-100 hover:border-brand-200 bg-slate-50/60 hover:bg-brand-50/40 cursor-pointer transition-all group">
-                    <div class="flex items-center justify-between gap-2 mb-1">
-                        <span class="text-[11px] font-semibold text-brand-600 bg-brand-50 px-2 py-0.5 rounded-md">${escapeHtml(item.tone)}</span>
-                        <span class="text-[11px] text-slate-400">${item.timestamp}</span>
-                    </div>
-                    <p class="text-xs font-medium text-slate-700 line-clamp-1 group-hover:text-slate-900">"${escapeHtml(item.comment)}"</p>
-                    <p class="text-[11px] text-slate-400 line-clamp-1 mt-0.5">${escapeHtml(item.replies[0]?.replyText || '')}</p>
-                </div>
-            `).join('');
-
-            document.getElementById('history-list-desktop').innerHTML = listHTML;
-            document.getElementById('history-list-mobile').innerHTML = listHTML;
-        }
-
-        // --- UTILITAS ---
-        function escapeHtml(str) {
-            if (!str) return '';
-            return str
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")
-                .replace(/"/g, "&quot;")
-                .replace(/'/g, "&#039;");
-        }
-
-        function showToast(message, type = 'info') {
-            const container = document.getElementById('toast-container');
-            const toast = document.createElement('div');
-            
-            const styles = {
-                success: 'bg-slate-900 text-white border-emerald-500/40',
-                error: 'bg-rose-600 text-white border-rose-400/40',
-                info: 'bg-slate-800 text-white border-brand-400/40'
-            };
-
-            const icons = {
-                success: 'check-circle-2',
-                error: 'alert-triangle',
-                info: 'sparkles'
-            };
-
-            toast.className = `pointer-events-auto flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg border text-xs font-medium fade-in ${styles[type] || styles.info}`;
-            toast.innerHTML = `
-                <i data-lucide="${icons[type]}" class="w-4 h-4 shrink-0 ${type === 'success' ? 'text-emerald-400' : ''}"></i>
-                <span>${escapeHtml(message)}</span>
-            `;
-
-            container.appendChild(toast);
-            lucide.createIcons();
-
-            setTimeout(() => {
-                toast.style.opacity = '0';
-                toast.style.transform = 'translateY(6px)';
-                toast.style.transition = 'all 0.25s ease';
-                setTimeout(() => toast.remove(), 250);
-            }, 3000);
-        }
-    </script>
+    generateBtn.addEventListener('click', generateReplies);
+    regenerateBtn.addEventListener('click', generateReplies);
+    document.getElementById('retryBtn').addEventListener('click', generateReplies);
+  </script>
 </body>
 </html>
